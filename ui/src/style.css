@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #0A84FF;
+  --color-primary-container: rgba(10, 132, 255, 0.2);
+  --color-surface: #131315;
+  --color-surface-container-low: #1C1C1E;
+  --color-surface-container-high: #2C2C2E;
+  --color-on-surface: #E4E2E4;
+  --color-on-surface-variant: #8E8E93;
+  --color-outline: #38383A;
+  --color-background: #000000;
+  
+  --font-headline: "Inter", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-label: "Geist", monospace;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-on-surface);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.glass {
+  background: rgba(28, 28, 30, 0.5);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+}
+
+.circular-progress {
+  --progress: 0;
+  background: radial-gradient(closest-side, #1C1C1E 79%, transparent 80% 100%),
+              conic-gradient(#0A84FF calc(var(--progress) * 1%), #38383A 0);
+}
+
+@keyframes pulse-glow {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+.ai-pulse {
+  animation: pulse-glow 2s infinite ease-in-out;
+}

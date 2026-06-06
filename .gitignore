@@ -1,0 +1,21 @@
+# Llama.cpp Binaries
+bin/
+
+# Models
+models/
+
+# Python Virtual Env
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Environment Variables
+.env
+
+# Llama Swap Config
+config.yaml
+
+# OS Files
+.DS_Store
+Thumbs.db

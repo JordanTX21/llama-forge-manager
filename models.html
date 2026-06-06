@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Model Hub - LocalAI</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Geist:wght@400;500&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed-variant": "#00468d",
+                        "inverse-on-surface": "#303032",
+                        "background": "#131315",
+                        "on-surface-variant": "#c0c6d6",
+                        "on-primary": "#003064",
+                        "on-error": "#690005",
+                        "surface-container": "#1f1f21",
+                        "on-primary-fixed": "#001b3e",
+                        "surface-container-highest": "#353437",
+                        "on-surface": "#e4e2e4",
+                        "surface-bright": "#39393b",
+                        "tertiary-fixed-dim": "#ffb691",
+                        "tertiary": "#ffb691",
+                        "on-secondary": "#303032",
+                        "on-error-container": "#ffdad6",
+                        "error": "#ffb4ab",
+                        "outline-variant": "#414754",
+                        "on-primary-container": "#002957",
+                        "surface-tint": "#aac7ff",
+                        "surface-dim": "#131315",
+                        "surface": "#131315",
+                        "outline": "#8b91a0",
+                        "inverse-primary": "#005db8",
+                        "surface-variant": "#353437",
+                        "surface-container-lowest": "#0e0e10",
+                        "inverse-surface": "#e4e2e4",
+                        "error-container": "#93000a",
+                        "tertiary-fixed": "#ffdbcb",
+                        "tertiary-container": "#eb6a12",
+                        "primary-fixed-dim": "#aac7ff",
+                        "on-tertiary-fixed-variant": "#793100",
+                        "surface-container-low": "#1b1b1d",
+                        "on-secondary-container": "#b6b4b7",
+                        "surface-container-high": "#2a2a2c",
+                        "secondary-fixed": "#e4e2e4",
+                        "primary": "#aac7ff",
+                        "on-tertiary-container": "#4a1b00",
+                        "secondary-fixed-dim": "#c8c6c8",
+                        "secondary-container": "#474649",
+                        "on-tertiary": "#552000",
+                        "secondary": "#c8c6c8",
+                        "primary-fixed": "#d6e3ff",
+                        "on-secondary-fixed-variant": "#474649",
+                        "on-background": "#e4e2e4",
+                        "primary-container": "#3e90ff",
+                        "on-tertiary-fixed": "#341100",
+                        "on-secondary-fixed": "#1b1b1d"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-gap": "16px",
+                        "section-gap": "48px",
+                        "max-width": "1200px",
+                        "unit": "8px",
+                        "container-padding": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "label-md": ["Geist"],
+                        "display": ["Inter"],
+                        "code-sm": ["Geist"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-lg": ["17px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-md": ["15px", {"lineHeight": "22px", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "label-md": ["13px", {"lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                        "display": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "code-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #000000;
+            color: #e4e2e4;
+        }
+        .glass-panel {
+            background: rgba(28, 28, 30, 0.5);
+            backdrop-filter: blur(20px);
+            border: 1px solid #38383A;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        input:focus {
+            outline: none;
+            border-color: #0A84FF;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body-md text-body-md overflow-x-hidden">
+<!-- Top Navigation (Mobile Only) -->
+<header class="flex md:hidden items-center justify-between px-4 h-16 fixed top-0 w-full z-40 bg-background/80 backdrop-blur-md border-b border-outline-variant/20">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">menu</span>
+<h1 class="font-headline-md-mobile text-headline-md-mobile text-on-surface">Model Hub</h1>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden border border-outline-variant/30">
+<img class="w-full h-full object-cover" data-alt="A professional, clean studio portrait of a young tech professional with short hair and a subtle smile. The lighting is soft and cinematic, with a dark, high-end studio background that matches a sleek dark-mode UI. The overall aesthetic is minimalist, modern, and high-performance." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8SLpLD676o4lArfA8M69a7JdeS0MtNMJ0Rn8AEeUmhdhShG0Yt9nHz94M0gQRgg3VrurhDbAGmLFKc3IVacM4O7NI4fDN4fnArGY9L0pXdhwD4-oVvoDgsekWw9D_Pa_2iUpvnK0ue9JG4Yds0imgQSogvu0KUzzNkUWZIY5ldW9Nuw4NiRRBqkN2u99M9PW9kMcE51dokkeFfXc4PoZrArGM8pLvapbRhb7CcFQ1G3llAQqpnvQ9RjBLIRIP7xGUh49kDT0GMrA"/>
+</div>
+</header>
+<!-- Navigation Drawer (Desktop) -->
+<nav class="hidden md:flex flex-col p-6 w-[280px] h-full fixed left-0 top-0 bg-background/80 backdrop-blur-xl border-r border-outline-variant/30 z-50">
+<div class="mb-10 px-2">
+<span class="font-headline-md text-headline-md font-bold text-on-surface">LocalAI</span>
+</div>
+<div class="space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-primary bg-primary-container/10 rounded-lg cursor-pointer active:scale-95 transition-all" href="#">
+<span class="material-symbols-outlined">model_training</span>
+<span class="font-body-md text-body-md">Models</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/50 transition-colors rounded-lg cursor-pointer active:scale-95" href="#">
+<span class="material-symbols-outlined">terminal</span>
+<span class="font-body-md text-body-md">Playground</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/50 transition-colors rounded-lg cursor-pointer active:scale-95" href="#">
+<span class="material-symbols-outlined">memory</span>
+<span class="font-body-md text-body-md">Compute</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/50 transition-colors rounded-lg cursor-pointer active:scale-95" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/50 transition-colors rounded-lg cursor-pointer active:scale-95" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-body-md text-body-md">Documentation</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="md:ml-[280px] pt-20 pb-24 md:pt-12 md:pb-12 px-container-padding max-w-[1200px] mx-auto min-h-screen">
+<!-- Header Section -->
+<header class="mb-section-gap hidden md:block">
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-2">Model Hub</h2>
+<p class="text-on-surface-variant">Manage and orchestrate your local machine learning environment.</p>
+</header>
+<div class="flex flex-col gap-section-gap">
+<!-- Download Section (Bento Style) -->
+<section>
+<div class="glass-panel p-8 rounded-xl relative overflow-hidden group">
+<!-- Subtle background glow -->
+<div class="absolute -top-24 -right-24 w-64 h-64 bg-primary/5 rounded-full blur-[100px] group-hover:bg-primary/10 transition-colors duration-500"></div>
+<div class="relative z-10">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-primary text-3xl">download_for_offline</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Download from Hugging Face</h3>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-end">
+<div class="space-y-6">
+<div class="space-y-2">
+<label class="font-label-md text-label-md text-on-surface-variant ml-1">Repo ID</label>
+<input class="w-full bg-surface-container-low border border-outline-variant/30 px-4 py-3.5 rounded-lg text-on-surface transition-all placeholder:text-outline-variant" placeholder="meta-llama/Llama-3-8B" type="text"/>
+</div>
+<div class="space-y-2">
+<label class="font-label-md text-label-md text-on-surface-variant ml-1">Filename</label>
+<input class="w-full bg-surface-container-low border border-outline-variant/30 px-4 py-3.5 rounded-lg text-on-surface transition-all placeholder:text-outline-variant" placeholder="llama-3-8b.Q4_K_M.gguf" type="text"/>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<button class="w-full bg-primary-container text-on-primary-container hover:bg-primary-container/90 px-6 py-4 rounded-lg font-semibold flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-lg shadow-primary-container/20">
+<span class="material-symbols-outlined">download</span>
+<span>Download Model</span>
+</button>
+<p class="text-xs text-on-surface-variant text-center opacity-60">GGUF format recommended for CPU/GPU hybrid inference.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Grid Section -->
+<section>
+<div class="flex items-center justify-between mb-8">
+<h3 class="font-headline-md text-headline-md text-on-surface">Downloaded Models</h3>
+<div class="flex items-center gap-2 px-3 py-1.5 glass-panel rounded-full text-xs font-label-md text-on-surface-variant">
+<span class="w-2 h-2 rounded-full bg-[#34C759]"></span>
+                        Local System Online
+                    </div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+<!-- Model Card 1 -->
+<div class="glass-panel group cursor-pointer hover:border-primary/50 transition-all duration-300 rounded-xl overflow-hidden flex flex-col">
+<div class="h-32 bg-surface-container-highest relative">
+<img class="w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity" data-alt="A sophisticated abstract 3D visualization of neural networks and glowing data nodes. The aesthetic is deep black with ethereal blue and white light trails, representing artificial intelligence and high-speed local processing. The lighting is sharp, minimalist, and conveys a sense of high-performance computation." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_BLKpREbjl895QYCdUMLpxPH1Rkngq7casGV8OpQm6WjXat554HeLN_bo_sF22JNQrZHKHhc3iFC3OKzXIXeiLifS9TpO8ct9izdL2bFfLQHHUGDtw4pRlvymip6plMrnH6o9dEyTFGyZ5HEYxC8OOPld0jtSHaQuhfMlfJ4ZT8YYHWHa09EbK2g5YESQ-ifD3SUYPAfsrnJAi5bUkOIEEvWakDj4d9ClNscktiBsIHQOT1pUl3KNNKBjyYr878n67E5Mn5u5Vi0"/>
+<div class="absolute top-4 right-4">
+<span class="bg-[#34C759]/10 text-[#34C759] text-[11px] font-bold px-2 py-0.5 rounded border border-[#34C759]/20 flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-[#34C759]"></span>
+                                    Ready
+                                </span>
+</div>
+</div>
+<div class="p-6">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h4 class="font-headline-md text-headline-md text-on-surface">Llama 3 (8B)</h4>
+<span class="text-sm text-on-surface-variant">by Meta</span>
+</div>
+<span class="font-code-sm text-code-sm text-on-surface-variant bg-surface-container px-2 py-1 rounded">Q4_K_M</span>
+</div>
+<div class="flex items-center justify-between mt-auto pt-4 border-t border-outline-variant/20">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">database</span>
+<span class="text-sm">4.92 GB</span>
+</div>
+<div class="flex gap-2">
+<button class="p-2 rounded-full hover:bg-surface-variant text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined">play_arrow</span>
+</button>
+<button class="p-2 rounded-full hover:bg-surface-variant text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Model Card 2 -->
+<div class="glass-panel group cursor-pointer hover:border-primary/50 transition-all duration-300 rounded-xl overflow-hidden flex flex-col">
+<div class="h-32 bg-surface-container-highest relative">
+<img class="w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity" data-alt="An abstract rendering of fluid, glass-like structures flowing in a void. The visual style is inspired by Apple's glass aesthetics, featuring soft refractions of cool blue and deep black. The lighting creates a high-end, pro-developer atmosphere with subtle gradients and crisp edges." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCN9lu1r_tnn2jwqN8GU_17Jokx3BWPeJsyMjMzbq9esiiAefrNc9wMqzI1emYkULh4U42nw5UZkfMA_y-_tNeImOIIm4FZ_GsG7x5d5NN_W0M64akoAXQqQR0gqxIne_zSh0iL9jVm5m1WAg_nYBhEN4sbWN60gqO1iN7h9uV-PZQOHNEMzKpbmOCy4_Ch6RCQ76pxHEs_eJgVuk9s4q-BwGxM4ZGdSfr3F-6X1N7D8fYwlsdggH5VmkFxeoejZxSfRAU10Uv6LRg"/>
+<div class="absolute top-4 right-4">
+<span class="bg-[#34C759]/10 text-[#34C759] text-[11px] font-bold px-2 py-0.5 rounded border border-[#34C759]/20 flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-[#34C759]"></span>
+                                    Ready
+                                </span>
+</div>
+</div>
+<div class="p-6">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h4 class="font-headline-md text-headline-md text-on-surface">Mistral Nemo (12B)</h4>
+<span class="text-sm text-on-surface-variant">by Mistral AI</span>
+</div>
+<span class="font-code-sm text-code-sm text-on-surface-variant bg-surface-container px-2 py-1 rounded">Q8_0</span>
+</div>
+<div class="flex items-center justify-between mt-auto pt-4 border-t border-outline-variant/20">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">database</span>
+<span class="text-sm">13.1 GB</span>
+</div>
+<div class="flex gap-2">
+<button class="p-2 rounded-full hover:bg-surface-variant text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined">play_arrow</span>
+</button>
+<button class="p-2 rounded-full hover:bg-surface-variant text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Model Card 3 -->
+<div class="glass-panel group cursor-pointer hover:border-primary/50 transition-all duration-300 rounded-xl overflow-hidden flex flex-col">
+<div class="h-32 bg-surface-container-highest relative">
+<img class="w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity" data-alt="A dark and moody architectural digital art piece depicting complex geometric patterns resembling a silicon chip or a processor's core. Glowing cyan micro-circuitry illuminates the pitch-black background. The lighting is dramatic and focused, highlighting the precise, intricate details of high-technology hardware." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDyx0LjTEeVyfEl6az5OuTeLKF2EBp6yj-pQpufG3Qs3imOruxws97n7eX7b_ZgIU_v2MfIisrT944XJGgpg-AbRABOsFGDBJjSXXVtzdQN3J5NHF8ei8T6qsqyYsU6nXZOCHHQR4KdWfF42EL_p12M0ELZT9SVdH4qFB7OGmwhGOK_aJcE3WLm5BIaiTsbW7PKgt2DWk-M0rKtu4pLdR1h7DtqHubta25JbBZCJeULX7tkOH39s227LnaFMEW0Ypbz19V-Lm3352U"/>
+<div class="absolute top-4 right-4">
+<span class="bg-[#34C759]/10 text-[#34C759] text-[11px] font-bold px-2 py-0.5 rounded border border-[#34C759]/20 flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-[#34C759]"></span>
+                                    Ready
+                                </span>
+</div>
+</div>
+<div class="p-6">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h4 class="font-headline-md text-headline-md text-on-surface">Phi-3 Mini</h4>
+<span class="text-sm text-on-surface-variant">by Microsoft</span>
+</div>
+<span class="font-code-sm text-code-sm text-on-surface-variant bg-surface-container px-2 py-1 rounded">FP16</span>
+</div>
+<div class="flex items-center justify-between mt-auto pt-4 border-t border-outline-variant/20">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">database</span>
+<span class="text-sm">7.64 GB</span>
+</div>
+<div class="flex gap-2">
+<button class="p-2 rounded-full hover:bg-surface-variant text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined">play_arrow</span>
+</button>
+<button class="p-2 rounded-full hover:bg-surface-variant text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Bottom Navigation (Mobile) -->
+<nav class="flex md:hidden justify-around items-center h-20 pb-safe px-6 fixed bottom-0 w-full z-50 bg-background/80 backdrop-blur-2xl border-t border-outline-variant/30">
+<a class="flex flex-col items-center justify-center text-primary active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-weight="fill">explore</span>
+<span class="font-label-md text-label-md">Hub</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">chat</span>
+<span class="font-label-md text-label-md">Chat</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">speed</span>
+<span class="font-label-md text-label-md">GPU</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-md text-label-md">Account</span>
+</a>
+</nav>
+<script>
+        // Simple Micro-interaction for inputs
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('focus', () => {
+                input.parentElement.parentElement.classList.add('ring-1', 'ring-primary/20');
+            });
+            input.addEventListener('blur', () => {
+                input.parentElement.parentElement.classList.remove('ring-1', 'ring-primary/20');
+            });
+        });
+
+        // Background Atmospheric Effect
+        const canvas = document.createElement('div');
+        canvas.style.position = 'fixed';
+        canvas.style.top = '0';
+        canvas.style.left = '0';
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.style.zIndex = '-1';
+        canvas.style.pointerEvents = 'none';
+        canvas.style.background = 'radial-gradient(circle at 50% 50%, #1a1a1a 0%, #000000 100%)';
+        document.body.appendChild(canvas);
+    </script>
+</body></html>
