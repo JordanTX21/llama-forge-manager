@@ -1,60 +1,152 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useModelsStore } from '../store/models.store'
 import { storeToRefs } from 'pinia'
-import { CloudDownload, Download } from '@lucide/vue'
+import { CloudDownload, Download, Loader2, Zap, CheckCircle2, Cpu, AlertTriangle } from '@lucide/vue'
+import { ModelsService, type HFFile } from '../services/models.service'
+import { HardwareService, type HardwareInfo } from '@/services/hardware.service'
+import HuggingFaceSearch from '@/components/HuggingFaceSearch.vue'
+import QuantizationSelector from '@/components/QuantizationSelector.vue'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const store = useModelsStore()
 const { isDownloading } = storeToRefs(store)
 
-const repoId = ref('')
-const filename = ref('')
+const selectedRepo = ref<string>('')
+const ggufFiles = ref<HFFile[]>([])
+const isLoadingFiles = ref(false)
+const selectedFile = ref<HFFile | null>(null)
 
-const handleDownload = async () => {
-  if (!repoId.value || !filename.value) return
+const hardwareInfo = ref<HardwareInfo | null>(null)
+
+const searchRef = ref<InstanceType<typeof HuggingFaceSearch> | null>(null)
+const quantSelectorRef = ref<InstanceType<typeof QuantizationSelector> | null>(null)
+
+onMounted(async () => {
+  try {
+    hardwareInfo.value = await HardwareService.getHardwareInfo()
+  } catch (e) {
+    console.error(e)
+  }
+})
+
+const onRepoSelected = async (repoId: string) => {
+  selectedRepo.value = repoId
+  isLoadingFiles.value = true
+  ggufFiles.value = []
+  selectedFile.value = null
 
   try {
-    await store.downloadModel(repoId.value, filename.value)
-    alert('Descarga iniciada en segundo plano.')
-    repoId.value = ''
-    filename.value = ''
+    ggufFiles.value = await ModelsService.getHFModelFiles(repoId)
+    if (ggufFiles.value.length > 0) {
+      const defaultQ4 = ggufFiles.value.find(f => f.path.toLowerCase().includes('q4_k_m'))
+      const fileToSelect = defaultQ4 || ggufFiles.value[0]
+      selectedFile.value = fileToSelect
+      if (quantSelectorRef.value) {
+        quantSelectorRef.value.selectFile(fileToSelect)
+      }
+    }
+  } catch (e) {
+    console.error(e)
+  } finally {
+    isLoadingFiles.value = false
+  }
+}
+
+const onSearchCleared = () => {
+  selectedRepo.value = ''
+  ggufFiles.value = []
+  selectedFile.value = null
+  if (quantSelectorRef.value) {
+    quantSelectorRef.value.clearSelection()
+  }
+}
+
+const onFileSelected = (file: HFFile) => {
+  selectedFile.value = file
+}
+
+const handleDownload = async () => {
+  if (!selectedRepo.value || !selectedFile.value) return
+
+  try {
+    const filename = selectedFile.value.path.split('/').pop() || selectedFile.value.path
+    await store.downloadModel(selectedRepo.value, filename)
+    alert(t('models.downloadStarted'))
+    if (searchRef.value) searchRef.value.clearSearch()
+    onSearchCleared()
   } catch (err) {
     console.error('Error starting download', err)
-    alert('Error al iniciar descarga.')
+    alert(t('models.downloadError'))
+  }
+}
+
+const getIconForStatus = (tier: string) => {
+  switch (tier) {
+    case 'RUNS WELL': return Zap
+    case 'DECENT': return CheckCircle2
+    case 'TIGHT FIT': return Cpu
+    case 'BARELY RUNS': return AlertTriangle
+    case 'TOO HEAVY': return AlertTriangle
+    default: return Zap
   }
 }
 </script>
 
 <template>
-  <div class="glass p-5 rounded-2xl relative overflow-hidden group border border-outline">
-    <div
-      class="absolute -top-16 -right-16 w-48 h-48 bg-primary/5 rounded-full blur-[80px] group-hover:bg-primary/10 transition-colors duration-500">
-    </div>
+  <div class="glass p-6 rounded-3xl relative group border border-outline shadow-sm flex flex-col gap-5">
     <div class="relative z-10">
-      <div class="flex items-center gap-2 mb-4">
+      <div class="flex items-center gap-2 mb-2">
         <CloudDownload class="text-primary w-6 h-6" />
-        <h3 class="font-headline text-xl text-on-surface font-semibold">Download from Hugging Face</h3>
+        <h3 class="font-headline text-2xl text-on-surface font-semibold tracking-tight">{{ t('models.downloadTitle') }}</h3>
       </div>
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-end">
-        <div>
-          <label class="font-label text-xs text-on-surface-variant uppercase tracking-wider ml-1">Repo ID</label>
-          <input v-model="repoId"
-            class="w-full bg-surface-container-low border border-outline px-3 py-2.5 rounded-lg text-sm text-on-surface transition-all placeholder:text-outline focus:outline-none focus:border-primary"
-            placeholder="meta-llama/Llama-3-8B" type="text" />
+      <p class="text-on-surface-variant text-sm font-body mb-6">{{ t('models.downloadDescription') }}</p>
+
+      <div class="flex flex-col lg:flex-row gap-6">
+
+        <!-- Left Side: Search and Select -->
+        <div class="flex-1 space-y-5">
+          <HuggingFaceSearch ref="searchRef" :disabled="isDownloading" @select="onRepoSelected"
+            @clear="onSearchCleared" />
+
+          <QuantizationSelector v-if="selectedRepo" ref="quantSelectorRef" :files="ggufFiles"
+            :hardware-info="hardwareInfo" :is-loading="isLoadingFiles" :disabled="isDownloading"
+            @select="onFileSelected" />
         </div>
-        <div>
-          <label class="font-label text-xs text-on-surface-variant uppercase tracking-wider ml-1">Filename</label>
-          <input v-model="filename"
-            class="w-full bg-surface-container-low border border-outline px-3 py-2.5 rounded-lg text-sm text-on-surface transition-all placeholder:text-outline focus:outline-none focus:border-primary"
-            placeholder="llama-3-8b.Q4_K_M.gguf" type="text" />
-        </div>
-        <div class="flex flex-col gap-3">
-          <p class="text-[10px] font-label text-on-surface-variant text-center opacity-70">GGUF format recommended for
-            CPU/GPU hybrid inference.</p>
-          <button @click="handleDownload" :disabled="isDownloading"
-            class="w-full bg-primary-container text-primary hover:bg-primary-container/80 px-4 py-2.5 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg shadow-primary-container/20 disabled:opacity-50 text-sm">
-            <Download class="w-[18px] h-[18px]" />
-            <span>{{ isDownloading ? 'Downloading...' : 'Download Model' }}</span>
+
+        <!-- Right Side: Hardware Compatibility & Action -->
+        <div class="flex-1 flex flex-col justify-end gap-5 lg:min-w-[300px]">
+
+          <!-- Compatibility Card -->
+          <div v-if="quantSelectorRef?.hardwareStatus"
+            class="rounded-2xl p-4 border transition-all animate-fade-in flex flex-col gap-2"
+            :class="[quantSelectorRef.hardwareStatus.bg, quantSelectorRef.hardwareStatus.color.replace('text-', 'border-') + '/30']">
+            <div class="flex items-center gap-2">
+              <component :is="getIconForStatus(quantSelectorRef.hardwareStatus.tier)" class="w-5 h-5"
+                :class="quantSelectorRef.hardwareStatus.color" />
+              <h4 class="font-headline font-semibold text-sm" :class="quantSelectorRef.hardwareStatus.color">{{ t('models.compatibilityTitle', { tier: '' }) }} {{ quantSelectorRef.hardwareStatus.tier }}</h4>
+            </div>
+            <div
+              class="flex items-center justify-between mt-1 bg-surface-container-low/50 p-2.5 rounded-xl border border-outline/30">
+              <span class="text-xs text-on-surface-variant font-medium">{{ t('models.estSpeed') }}</span>
+              <span class="text-sm font-bold" :class="quantSelectorRef.hardwareStatus.color">{{
+                quantSelectorRef.hardwareStatus.speed }}</span>
+            </div>
+            <p class="text-xs text-on-surface opacity-90 mt-1 leading-relaxed">{{ quantSelectorRef.hardwareStatus.desc
+            }}</p>
+          </div>
+
+          <div v-else
+            class="rounded-2xl p-4 border border-outline/50 bg-surface-container-low/50 flex items-center justify-center min-h-[110px] text-center">
+            <p class="text-xs text-on-surface-variant opacity-70">{{ t('models.selectModelToView') }}</p>
+          </div>
+
+          <button @click="handleDownload" :disabled="isDownloading || !selectedFile"
+            class="w-full bg-primary hover:bg-primary/90 text-on-primary py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg shadow-primary/20 disabled:opacity-50 disabled:active:scale-100 disabled:shadow-none text-sm tracking-wide">
+            <Download v-if="!isDownloading" class="w-[18px] h-[18px]" />
+            <Loader2 v-else class="w-[18px] h-[18px] animate-spin" />
+            <span>{{ isDownloading ? t('models.downloadingModel') : t('models.downloadModel') }}</span>
           </button>
         </div>
       </div>

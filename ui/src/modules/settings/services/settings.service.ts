@@ -69,5 +69,8 @@ export const SettingsService = {
   },
   async saveCommand(config: CommandConfig): Promise<any> {
     return apiClient.post('/commands/', config)
+  },
+  async runCommand(filename: string): Promise<any> {
+    return apiClient.post('/runner/command', { filename })
   }
 }

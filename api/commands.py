@@ -90,18 +90,14 @@ def parse_ps1_content(content: str, filename: str) -> CommandConfig:
             return val
         return default
 
-    alias = get_val(r'-a\s+([^\s`\n\r]+|"[^"]+")')
-    model_path = get_val(r'-m\s+([^\s`\n\r]+|"[^"]+")')
-    mmproj_path = get_val(r'-mm\s+([^\s`\n\r]+|"[^"]+")')
+    alias = get_val(r'(?:-a|--alias)\s+([^\s`\n\r]+|"[^"]+")')
+    model_path = get_val(r'(?:-m|--model)\s+([^\s`\n\r]+|"[^"]+")').replace("\\", "/")
+    mmproj_path = get_val(r'(?:-mm|--mmproj)\s+([^\s`\n\r]+|"[^"]+")').replace("\\", "/")
     
-    if model_path.startswith("..\\"):
-        model_path = model_path[3:]
-    elif model_path.startswith("../"):
+    if model_path.startswith("../"):
         model_path = model_path[3:]
         
-    if mmproj_path.startswith("..\\"):
-        mmproj_path = mmproj_path[3:]
-    elif mmproj_path.startswith("../"):
+    if mmproj_path.startswith("../"):
         mmproj_path = mmproj_path[3:]
         
     return CommandConfig(
@@ -110,21 +106,21 @@ def parse_ps1_content(content: str, filename: str) -> CommandConfig:
         model_path=model_path,
         mmproj_path=mmproj_path,
         port=_parse_int(content, r'\[int\]\$Port\s*=\s*(\d+)', 8080),
-        ctx_size=_parse_int(content, r'-c\s+(\d+)', 4096),
-        ngl=_parse_int(content, r'-ngl\s+(\d+)', 0),
+        ctx_size=_parse_int(content, r'(?:-c|--ctx-size)\s+(\d+)', 4096),
+        ngl=_parse_int(content, r'(?:-ngl|--n-gpu-layers)\s+(\d+)', 0),
         flash_attention=bool(re.search(r'-fa\s+on\b', content) or re.search(r'--flash-attn\b', content)),
         thinking_mode=bool(re.search(r'--reasoning(?:-format)?(?:\s+on)?\b', content) or re.search(r'--reasoning\b', content)),
         
-        threads=_parse_int(content, r'-t\s+(\d+)', -1),
-        threads_batch=_parse_int(content, r'-tb\s+(\d+)', -1),
-        np=_parse_int(content, r'-np\s+(\d+)', -1),
-        cr=get_val(r'-Cr\s+([^\s`\n\r]+|"[^"]+")'),
-        crb=get_val(r'-Crb\s+([^\s`\n\r]+|"[^"]+")'),
+        threads=_parse_int(content, r'(?:-t|--threads)\s+(\d+)', -1),
+        threads_batch=_parse_int(content, r'(?:-tb|--threads-batch)\s+(\d+)', -1),
+        np=_parse_int(content, r'(?:-np|--num-processes)\s+(\d+)', -1),
+        cr=get_val(r'(?:-Cr|--core-ratio)\s+([^\s`\n\r]+|"[^"]+")'),
+        crb=get_val(r'(?:-Crb|--core-ratio-batch)\s+([^\s`\n\r]+|"[^"]+")'),
         cpu_strict=bool(re.search(r'--cpu-strict\s+1\b', content)),
         cpu_strict_batch=bool(re.search(r'--cpu-strict-batch\s+1\b', content)),
         
-        batch_size=_parse_int(content, r'-b\s+(\d+)', -1),
-        ubatch_size=_parse_int(content, r'-ub\s+(\d+)', -1),
+        batch_size=_parse_int(content, r'(?:-b|--batch-size)\s+(\d+)', -1),
+        ubatch_size=_parse_int(content, r'(?:-ub|--ubatch-size)\s+(\d+)', -1),
         prio=_parse_int(content, r'--prio\s+(\d+)', -1),
         prio_batch=_parse_int(content, r'--prio-batch\s+(\d+)', -1),
         poll=_parse_int(content, r'--poll\s+(\d+)', -1),

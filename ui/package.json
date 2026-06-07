@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "type-check": "vue-tsc --noEmit -p tsconfig.vitest.json --composite false",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore"
   },
   "dependencies": {
     "@lucide/vue": "^1.17.0",
@@ -14,15 +16,20 @@
     "pinia": "^3.0.4",
     "vee-validate": "^4.15.1",
     "vue": "^3.5.34",
+    "vue-i18n": "^11.4.5",
     "vue-router": "^5.1.0",
     "yup": "^1.7.1"
   },
   "devDependencies": {
+    "@rushstack/eslint-patch": "^1.16.1",
     "@tailwindcss/vite": "^4.3.0",
     "@types/node": "^24.12.3",
     "@vitejs/plugin-vue": "^6.0.6",
+    "@vue/eslint-config-typescript": "^13.0.0",
     "@vue/tsconfig": "^0.9.1",
     "autoprefixer": "^10.5.0",
+    "eslint": "^8.57.1",
+    "eslint-plugin-vue": "^9.33.0",
     "postcss": "^8.5.15",
     "tailwindcss": "^4.3.0",
     "typescript": "~6.0.2",

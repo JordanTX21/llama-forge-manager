@@ -2,3 +2,5 @@ huggingface_hub[cli]
 fastapi
 uvicorn
 psutil
+httpx
+pyyaml

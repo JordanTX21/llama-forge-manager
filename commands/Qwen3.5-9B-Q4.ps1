@@ -18,12 +18,12 @@ $LlamaExe = Join-Path $RootDir (Join-Path $BinDir $ExeName)
 $HostAddr = if ($env:DEFAULT_HOST) { $env:DEFAULT_HOST } else { "127.0.0.1" }
 
 & $LlamaExe `
-    -m "models\Qwen\Qwen3.5-9B\Qwen3.5-9B-UD-Q4_K_XL.gguf" `
+    -m "models/Qwen/Qwen3.5-9B/Qwen3.5-9B-UD-Q4_K_XL.gguf" `
     -c 131072 `
     -ngl 99 `
     --port $Port `
     --host $HostAddr `
-    -mm "models\Qwen\Qwen3.5-9B\mmproj-BF16.gguf" `
+    -mm "models/Qwen/Qwen3.5-9B/mmproj-BF16.gguf" `
     --cache-type-k "q8_0" `
     --cache-type-v "q8_0" `
     --temp 0.6 `
