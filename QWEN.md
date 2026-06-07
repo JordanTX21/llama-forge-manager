@@ -46,15 +46,15 @@ config.yaml           # Auto-generated llama-swap master config
 
 ## Key Files
 
-| File | Purpose |
-|------|---------|
-| `start-manager.ps1` | Single command to set up venv, install deps, start backend + frontend |
-| `start-swap.ps1` | Launch `llama-swap --config config.yaml --listen 127.0.0.1:8080` |
-| `api/main.py` | FastAPI app, CORS, router prefix registration |
-| `api/commands.py` | Parse/generate `.ps1` command files and `config.yaml` |
-| `scripts/run_model.ps1` | Wraps `llama-server.exe` with all inference arguments |
-| `.env.example` | Config keys: `LLAMA_BIN_DIR`, `LLAMA_SERVER_EXE`, `DEFAULT_CTX_SIZE`, `DEFAULT_NGL`, `DEFAULT_HOST`, `HF_TOKEN` |
-| `ui/src/services/api.service.ts` | HTTP client targeting `http://localhost:8000/api` |
+| File                             | Purpose                                                                                                         |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `start-manager.ps1`              | Single command to set up venv, install deps, start backend + frontend                                           |
+| `start-swap.ps1`                 | Launch `llama-swap --config config.yaml --listen 127.0.0.1:8080`                                                |
+| `api/main.py`                    | FastAPI app, CORS, router prefix registration                                                                   |
+| `api/commands.py`                | Parse/generate `.ps1` command files and `config.yaml`                                                           |
+| `scripts/run_model.ps1`          | Wraps `llama-server.exe` with all inference arguments                                                           |
+| `.env.example`                   | Config keys: `LLAMA_BIN_DIR`, `LLAMA_SERVER_EXE`, `DEFAULT_CTX_SIZE`, `DEFAULT_NGL`, `DEFAULT_HOST`, `HF_TOKEN` |
+| `ui/src/services/api.service.ts` | HTTP client targeting `http://localhost:8000/api`                                                               |
 
 ## Building and Running
 
@@ -64,6 +64,7 @@ config.yaml           # Auto-generated llama-swap master config
 ```
 
 This script:
+
 1. Creates `venv/` if missing, installs `requirements.txt`
 2. Runs `npm install` in `ui/` if `node_modules/` is missing
 3. Starts FastAPI on `http://127.0.0.1:8000`
@@ -83,21 +84,21 @@ npm run dev
 npm run build   # runs vue-tsc -b && vite build
 
 # llama-swap only
-.\start-swap.ps1
+.\scripts\start-swap.ps1
 ```
 
 ## API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/status` | Health check |
-| GET | `/api/hardware/` | CPU/RAM/GPU metrics |
-| POST | `/api/huggingface/download` | Download GGUF model (triggers PowerShell script) |
-| GET | `/api/huggingface/local` | List downloaded models |
-| GET | `/api/commands/` | List all command configs (parses `.ps1` files) |
-| POST | `/api/commands/` | Save command config (writes `.ps1` + updates `config.yaml`) |
-| POST | `/api/runner/start` | Start a model directly via `run_model.ps1` |
-| POST | `/api/runner/swap` | Start llama-swap |
+| Method | Endpoint                    | Description                                                 |
+| ------ | --------------------------- | ----------------------------------------------------------- |
+| GET    | `/api/status`               | Health check                                                |
+| GET    | `/api/hardware/`            | CPU/RAM/GPU metrics                                         |
+| POST   | `/api/huggingface/download` | Download GGUF model (triggers PowerShell script)            |
+| GET    | `/api/huggingface/local`    | List downloaded models                                      |
+| GET    | `/api/commands/`            | List all command configs (parses `.ps1` files)              |
+| POST   | `/api/commands/`            | Save command config (writes `.ps1` + updates `config.yaml`) |
+| POST   | `/api/runner/start`         | Start a model directly via `run_model.ps1`                  |
+| POST   | `/api/runner/swap`          | Start llama-swap                                            |
 
 API docs available at `http://localhost:8000/docs`.
 
@@ -119,11 +120,11 @@ API docs available at `http://localhost:8000/docs`.
 
 ## Environment Variables (.env)
 
-| Key | Default | Description |
-|-----|---------|-------------|
-| `LLAMA_BIN_DIR` | (empty) | Path to llama.cpp binary directory |
-| `LLAMA_SERVER_EXE` | `llama-server.exe` | llama-server executable name |
-| `DEFAULT_CTX_SIZE` | `262144` | Default context size |
-| `DEFAULT_NGL` | `99` | Default GPU layers |
-| `DEFAULT_HOST` | `127.0.0.1` | Default bind host |
-| `HF_TOKEN` | (empty) | HuggingFace token for private models |
+| Key                | Default            | Description                          |
+| ------------------ | ------------------ | ------------------------------------ |
+| `LLAMA_BIN_DIR`    | (empty)            | Path to llama.cpp binary directory   |
+| `LLAMA_SERVER_EXE` | `llama-server.exe` | llama-server executable name         |
+| `DEFAULT_CTX_SIZE` | `262144`           | Default context size                 |
+| `DEFAULT_NGL`      | `99`               | Default GPU layers                   |
+| `DEFAULT_HOST`     | `127.0.0.1`        | Default bind host                    |
+| `HF_TOKEN`         | (empty)            | HuggingFace token for private models |

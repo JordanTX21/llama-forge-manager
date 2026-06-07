@@ -1,11 +1,11 @@
 # Llama.cpp Binaries
-bin/
+/bin/
 
 # Models
-models/
+/models/
 
 # Python Virtual Env
-venv/
+/venv/
 env/
 __pycache__/
 *.pyc

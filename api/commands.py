@@ -1,7 +1,7 @@
 import os
 import re
 import yaml
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 
@@ -51,6 +51,8 @@ class CommandConfig(BaseModel):
     repeat_penalty: float = 1.0
 
     jinja: bool = False
+    
+    raw_content: Optional[str] = None
 
 
 def get_commands_dir():
@@ -71,8 +73,83 @@ def _parse_str(content: str, pattern: str, default: str = "") -> str:
     m = re.search(pattern, content)
     return m.group(1) if m else default
 
-def _parse_bool(content: str, switch_name: str) -> bool:
+def _parse_bool(content: str, switch_name: str, has_on: bool = False) -> bool:
+    if has_on:
+        return bool(re.search(rf'{switch_name}(?:\s+on)?\b', content))
     return switch_name in content
+
+def parse_ps1_content(content: str, filename: str) -> CommandConfig:
+    def get_val(pattern, default=""):
+        m = re.search(pattern, content)
+        if m:
+            val = m.group(1).strip()
+            if val.startswith('"') and val.endswith('"'):
+                val = val[1:-1]
+            if val.startswith("'") and val.endswith("'"):
+                val = val[1:-1]
+            return val
+        return default
+
+    alias = get_val(r'-a\s+([^\s`\n\r]+|"[^"]+")')
+    model_path = get_val(r'-m\s+([^\s`\n\r]+|"[^"]+")')
+    mmproj_path = get_val(r'-mm\s+([^\s`\n\r]+|"[^"]+")')
+    
+    if model_path.startswith("..\\"):
+        model_path = model_path[3:]
+    elif model_path.startswith("../"):
+        model_path = model_path[3:]
+        
+    if mmproj_path.startswith("..\\"):
+        mmproj_path = mmproj_path[3:]
+    elif mmproj_path.startswith("../"):
+        mmproj_path = mmproj_path[3:]
+        
+    return CommandConfig(
+        filename=filename,
+        alias=alias,
+        model_path=model_path,
+        mmproj_path=mmproj_path,
+        port=_parse_int(content, r'\[int\]\$Port\s*=\s*(\d+)', 8080),
+        ctx_size=_parse_int(content, r'-c\s+(\d+)', 4096),
+        ngl=_parse_int(content, r'-ngl\s+(\d+)', 0),
+        flash_attention=bool(re.search(r'-fa\s+on\b', content) or re.search(r'--flash-attn\b', content)),
+        thinking_mode=bool(re.search(r'--reasoning(?:-format)?(?:\s+on)?\b', content) or re.search(r'--reasoning\b', content)),
+        
+        threads=_parse_int(content, r'-t\s+(\d+)', -1),
+        threads_batch=_parse_int(content, r'-tb\s+(\d+)', -1),
+        np=_parse_int(content, r'-np\s+(\d+)', -1),
+        cr=get_val(r'-Cr\s+([^\s`\n\r]+|"[^"]+")'),
+        crb=get_val(r'-Crb\s+([^\s`\n\r]+|"[^"]+")'),
+        cpu_strict=bool(re.search(r'--cpu-strict\s+1\b', content)),
+        cpu_strict_batch=bool(re.search(r'--cpu-strict-batch\s+1\b', content)),
+        
+        batch_size=_parse_int(content, r'-b\s+(\d+)', -1),
+        ubatch_size=_parse_int(content, r'-ub\s+(\d+)', -1),
+        prio=_parse_int(content, r'--prio\s+(\d+)', -1),
+        prio_batch=_parse_int(content, r'--prio-batch\s+(\d+)', -1),
+        poll=_parse_int(content, r'--poll\s+(\d+)', -1),
+        poll_batch=_parse_int(content, r'--poll-batch\s+(\d+)', -1),
+        
+        cache_type_k=get_val(r'--cache-type-k\s+([^\s`\n\r]+|"[^"]+")', "q8_0"),
+        cache_type_v=get_val(r'--cache-type-v\s+([^\s`\n\r]+|"[^"]+")', "q8_0"),
+        kv_unified=_parse_bool(content, '--kv-unified'),
+        no_mmap=_parse_bool(content, '--no-mmap'),
+        mlock=_parse_bool(content, '--mlock'),
+        
+        ncmoe=_parse_int(content, r'-ncmoe\s+(\d+)', -1),
+        spec_type=get_val(r'--spec-type\s+([^\s`\n\r]+|"[^"]+")'),
+        spec_draft_n_max=_parse_int(content, r'--spec-draft-n-max\s+(\d+)', -1),
+        
+        temp=_parse_float(content, r'--temp\s+([0-9.]+)', 0.6),
+        top_p=_parse_float(content, r'--top-p\s+([0-9.]+)', 0.95),
+        top_k=_parse_int(content, r'--top-k\s+(\d+)', 20),
+        min_p=_parse_float(content, r'--min-p\s+([0-9.]+)', 0.0),
+        presence_penalty=_parse_float(content, r'--presence-penalty\s+([0-9.]+)', 0.0),
+        repeat_penalty=_parse_float(content, r'--repeat-penalty\s+([0-9.]+)', 1.0),
+        
+        jinja=_parse_bool(content, '--jinja'),
+        raw_content=content
+    )
 
 @router.get("/")
 def list_commands() -> List[CommandConfig]:
@@ -87,57 +164,13 @@ def list_commands() -> List[CommandConfig]:
             with open(filepath, 'r', encoding='utf-8') as f:
                 content = f.read()
 
-            alias_m = re.search(r'-Alias\s+"([^"]+)"', content)
-            model_path_m = re.search(r'-ModelPath\s+"([^"]+)"', content)
-            
-            if not alias_m or not model_path_m:
-                continue
-
-            configs.append(CommandConfig(
-                filename=file,
-                alias=alias_m.group(1),
-                model_path=model_path_m.group(1),
-                mmproj_path=_parse_str(content, r'-MmprojPath\s+"([^"]+)"', ""),
-                port=_parse_int(content, r'\[int\]\$Port\s*=\s*(\d+)', 8080),
-                ctx_size=_parse_int(content, r'-CtxSize\s+(\d+)', 4096),
-                ngl=_parse_int(content, r'-Ngl\s+(\d+)', 0),
-                flash_attention=_parse_bool(content, '-FlashAttention'),
-                thinking_mode=_parse_bool(content, '-Thinking'),
+            try:
+                conf = parse_ps1_content(content, file)
+                if conf.alias and conf.model_path:
+                    configs.append(conf)
+            except Exception as e:
+                print(f"Error parsing {file}: {e}")
                 
-                threads=_parse_int(content, r'-Threads\s+(\d+)', -1),
-                threads_batch=_parse_int(content, r'-ThreadsBatch\s+(\d+)', -1),
-                np=_parse_int(content, r'-Np\s+(\d+)', -1),
-                cr=_parse_str(content, r'-Cr\s+"([^"]+)"', ""),
-                crb=_parse_str(content, r'-Crb\s+"([^"]+)"', ""),
-                cpu_strict=_parse_bool(content, '-CpuStrict'),
-                cpu_strict_batch=_parse_bool(content, '-CpuStrictBatch'),
-                
-                batch_size=_parse_int(content, r'-BatchSize\s+(\d+)', -1),
-                ubatch_size=_parse_int(content, r'-UbatchSize\s+(\d+)', -1),
-                prio=_parse_int(content, r'-Prio\s+(\d+)', -1),
-                prio_batch=_parse_int(content, r'-PrioBatch\s+(\d+)', -1),
-                poll=_parse_int(content, r'-Poll\s+(\d+)', -1),
-                poll_batch=_parse_int(content, r'-PollBatch\s+(\d+)', -1),
-                
-                cache_type_k=_parse_str(content, r'-CacheTypeK\s+"([^"]+)"', "q8_0"),
-                cache_type_v=_parse_str(content, r'-CacheTypeV\s+"([^"]+)"', "q8_0"),
-                kv_unified=_parse_bool(content, '-KvUnified'),
-                no_mmap=_parse_bool(content, '-NoMmap'),
-                mlock=_parse_bool(content, '-Mlock'),
-                
-                ncmoe=_parse_int(content, r'-NcMoe\s+(\d+)', -1),
-                spec_type=_parse_str(content, r'-SpecType\s+"([^"]+)"', ""),
-                spec_draft_n_max=_parse_int(content, r'-SpecDraftNMax\s+(\d+)', -1),
-                
-                temp=_parse_float(content, r'-Temp\s+([0-9.]+)', 0.6),
-                top_p=_parse_float(content, r'-TopP\s+([0-9.]+)', 0.95),
-                top_k=_parse_int(content, r'-TopK\s+(\d+)', 20),
-                min_p=_parse_float(content, r'-MinP\s+([0-9.]+)', 0.0),
-                presence_penalty=_parse_float(content, r'-PresencePenalty\s+([0-9.]+)', 0.0),
-                repeat_penalty=_parse_float(content, r'-RepeatPenalty\s+([0-9.]+)', 1.0),
-                
-                jinja=_parse_bool(content, '-Jinja')
-            ))
     return configs
 
 @router.post("/")
@@ -149,66 +182,89 @@ def save_command(config: CommandConfig):
     os.makedirs(commands_dir, exist_ok=True)
     filepath = os.path.join(commands_dir, config.filename)
 
-    def s(key: str, val: str) -> str: return f'\n    -{key} "{val}" `' if val else ""
-    def i(key: str, val: int) -> str: return f'\n    -{key} {val} `' if val >= 0 else ""
-    def f(key: str, val: float) -> str: return f'\n    -{key} {val} `'
-    def b(key: str, val: bool) -> str: return f'\n    -{key} `' if val else ""
+    if config.raw_content:
+        try:
+            parsed = parse_ps1_content(config.raw_content, config.filename)
+            if not parsed.alias or not parsed.model_path:
+                raise ValueError("Missing Alias (-a) or Model Path (-m) in raw code.")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to parse raw code: {e}")
+            
+        template = config.raw_content
+    else:
+        def s(key: str, val: str) -> str: return f'\n    {key} "{val}" `' if val else ""
+        def s_no_quote(key: str, val: str) -> str: return f'\n    {key} {val} `' if val else ""
+        def i(key: str, val: int) -> str: return f'\n    {key} {val} `' if val >= 0 else ""
+        def f(key: str, val: float) -> str: return f'\n    {key} {val} `'
+        def b(key: str, val: bool) -> str: return f'\n    {key} `' if val else ""
 
-    args_str = (
-        s("MmprojPath", config.mmproj_path) +
-        i("Threads", config.threads) +
-        i("ThreadsBatch", config.threads_batch) +
-        i("Np", config.np) +
-        s("Cr", config.cr) +
-        s("Crb", config.crb) +
-        b("CpuStrict", config.cpu_strict) +
-        b("CpuStrictBatch", config.cpu_strict_batch) +
-        
-        i("BatchSize", config.batch_size) +
-        i("UbatchSize", config.ubatch_size) +
-        i("Prio", config.prio) +
-        i("PrioBatch", config.prio_batch) +
-        i("Poll", config.poll) +
-        i("PollBatch", config.poll_batch) +
-        
-        s("CacheTypeK", config.cache_type_k) +
-        s("CacheTypeV", config.cache_type_v) +
-        b("KvUnified", config.kv_unified) +
-        b("NoMmap", config.no_mmap) +
-        b("Mlock", config.mlock) +
-        
-        i("NcMoe", config.ncmoe) +
-        s("SpecType", config.spec_type) +
-        i("SpecDraftNMax", config.spec_draft_n_max) +
-        
-        f("Temp", config.temp) +
-        f("TopP", config.top_p) +
-        i("TopK", config.top_k) +
-        f("MinP", config.min_p) +
-        f("PresencePenalty", config.presence_penalty) +
-        f("RepeatPenalty", config.repeat_penalty) +
-        
-        b("Jinja", config.jinja) +
-        b("FlashAttention", config.flash_attention) +
-        b("Thinking", config.thinking_mode)
-    )
+        args_str = (
+            s("-mm", config.mmproj_path) +
+            i("-t", config.threads) +
+            i("-tb", config.threads_batch) +
+            i("-np", config.np) +
+            s_no_quote("-Cr", config.cr) +
+            s_no_quote("-Crb", config.crb) +
+            (f'\n    --cpu-strict 1 `' if config.cpu_strict else '') +
+            (f'\n    --cpu-strict-batch 1 `' if config.cpu_strict_batch else '') +
+            
+            i("-b", config.batch_size) +
+            i("-ub", config.ubatch_size) +
+            i("--prio", config.prio) +
+            i("--prio-batch", config.prio_batch) +
+            i("--poll", config.poll) +
+            i("--poll-batch", config.poll_batch) +
+            
+            s("--cache-type-k", config.cache_type_k) +
+            s("--cache-type-v", config.cache_type_v) +
+            b("--kv-unified", config.kv_unified) +
+            b("--no-mmap", config.no_mmap) +
+            b("--mlock", config.mlock) +
+            
+            i("-ncmoe", config.ncmoe) +
+            s("--spec-type", config.spec_type) +
+            i("--spec-draft-n-max", config.spec_draft_n_max) +
+            
+            f("--temp", config.temp) +
+            f("--top-p", config.top_p) +
+            i("--top-k", config.top_k) +
+            f("--min-p", config.min_p) +
+            f("--presence-penalty", config.presence_penalty) +
+            f("--repeat-penalty", config.repeat_penalty) +
+            
+            b("--jinja", config.jinja) +
+            (f'\n    -fa on `' if config.flash_attention else '') +
+            (f'\n    --reasoning on `' if config.thinking_mode else '')
+        )
 
-    template = f"""param(
+        template = f"""param(
     [int]$Port = {config.port}
 )
 
 $RootDir = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Definition)
-$RunModelScript = Join-Path $RootDir "scripts\\run_model.ps1"
+Set-Location $RootDir
 
-& $RunModelScript `
-    -ModelPath "{config.model_path}" `
-    -Alias "{config.alias}" `
-    -CtxSize {config.ctx_size} `
-    -Ngl {config.ngl} `
-    -Port $Port `{args_str}
+$EnvPath = Join-Path $RootDir ".env"
+if (Test-Path $EnvPath) {{
+    Get-Content $EnvPath | ForEach-Object {{
+        if ($_ -match '^\\s*([^#]+?)\\s*=\\s*(.*)$') {{ Set-Item -Path "Env:\$($matches[1])" -Value $matches[2] }}
+    }}
+}}
+
+$BinDir = if ($env:LLAMA_BIN_DIR) {{ $env:LLAMA_BIN_DIR }} else {{ "bin\\llama-b9037-bin-win-cuda-13.1-x64" }}
+$ExeName = if ($env:LLAMA_SERVER_EXE) {{ $env:LLAMA_SERVER_EXE }} else {{ "llama-server.exe" }}
+$LlamaExe = Join-Path $RootDir (Join-Path $BinDir $ExeName)
+$HostAddr = if ($env:DEFAULT_HOST) {{ $env:DEFAULT_HOST }} else {{ "127.0.0.1" }}
+
+& $LlamaExe `
+    -m "{config.model_path}" `
+    -c {config.ctx_size} `
+    -ngl {config.ngl} `
+    --port $Port `
+    --host $HostAddr `{args_str}
+    -a "{config.alias}"
 """
-    # Remove dangling backtick if any
-    template = template.rstrip(" `\n") + "\n"
+        template = template.rstrip(" `\n") + "\n"
 
     with open(filepath, 'w', encoding='utf-8') as f:
         f.write(template)
@@ -221,8 +277,13 @@ $RunModelScript = Join-Path $RootDir "scripts\\run_model.ps1"
             if "models" not in data:
                 data["models"] = {}
 
-    data["models"][config.alias] = {
-        "name": f"{config.alias} (Local)",
+    conf_alias = config.alias
+    if config.raw_content:
+        parsed = parse_ps1_content(config.raw_content, config.filename)
+        conf_alias = parsed.alias
+        
+    data["models"][conf_alias] = {
+        "name": f"{conf_alias} (Local)",
         "cmd": f"powershell.exe -ExecutionPolicy Bypass -File C:/llama.cpp/commands/{config.filename} -Port ${{PORT}}"
     }
 

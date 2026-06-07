@@ -42,7 +42,7 @@ def start_model(req: RunModelRequest):
 @router.post("/swap")
 def start_swap():
     try:
-        script_path = os.path.join(os.path.dirname(__file__), "..", "start-swap.ps1")
+        script_path = os.path.join(os.path.dirname(__file__), "..", "scripts", "start-swap.ps1")
         cmd = [
             "powershell.exe",
             "-ExecutionPolicy", "Bypass",

@@ -54,6 +54,7 @@ export interface CommandConfig {
   repeat_penalty: number;
 
   jinja: boolean;
+  raw_content?: string;
 }
 
 export const SettingsService = {
