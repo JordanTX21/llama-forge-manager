@@ -26,9 +26,35 @@ app.include_router(runner_router, prefix="/api/runner", tags=["Runner"])
 app.include_router(commands_router, prefix="/api/commands", tags=["Commands"])
 app.include_router(recommend_router, prefix="/api/recommend", tags=["Recommend"])
 
+import os
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
 @app.get("/api/status")
 def status():
     return {"status": "online"}
 
-if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+from api.paths import get_base_dir
+
+# Serve frontend static files
+ui_dist_path = os.path.abspath(os.path.join(get_base_dir(), "ui", "dist"))
+
+if os.path.exists(ui_dist_path):
+    # Mount the assets directory specifically
+    assets_path = os.path.join(ui_dist_path, "assets")
+    if os.path.exists(assets_path):
+        app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
+
+    # Catch-all for SPA routing and other static files at root level
+    @app.api_route("/{path_name:path}", methods=["GET"])
+    async def catch_all(path_name: str):
+        file_path = os.path.join(ui_dist_path, path_name)
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+            
+        index_path = os.path.join(ui_dist_path, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+            
+        return {"error": "Frontend no compilado o index.html no encontrado. Ejecuta 'npm run build' en ui/"}
+

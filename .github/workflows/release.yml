@@ -1,0 +1,71 @@
+name: Build and Release Standalone Binaries
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            executable_name: llama-forge-manager-linux
+          - os: windows-latest
+            executable_name: llama-forge-manager.exe
+          - os: macos-latest
+            executable_name: llama-forge-manager-macos
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install Frontend Dependencies and Build
+      working-directory: ./ui
+      run: |
+        npm install
+        npm run build
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Python Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+
+    - name: Build with PyInstaller
+      run: |
+        # Usar el separador correcto de rutas según el OS
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          pyinstaller --name llama-forge-manager --onefile --add-data "ui/dist;ui/dist" --add-data ".env.example;.env.example" run.py
+        else
+          pyinstaller --name llama-forge-manager --onefile --add-data "ui/dist:ui/dist" --add-data ".env.example:.env.example" run.py
+        fi
+      shell: bash
+
+    - name: Rename Executable
+      run: |
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          mv dist/llama-forge-manager.exe dist/${{ matrix.executable_name }}
+        else
+          mv dist/llama-forge-manager dist/${{ matrix.executable_name }}
+        fi
+      shell: bash
+
+    - name: Upload Release Asset
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: dist/${{ matrix.executable_name }}

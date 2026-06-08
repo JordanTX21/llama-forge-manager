@@ -55,12 +55,6 @@ class CommandConfig(BaseModel):
     raw_content: Optional[str] = None
 
 
-def get_commands_dir():
-    return os.path.join(os.path.dirname(__file__), "..", "commands")
-
-def get_config_yaml_path():
-    return os.path.join(os.path.dirname(__file__), "..", "config.yaml")
-
 def _parse_int(content: str, pattern: str, default: int = -1) -> int:
     m = re.search(pattern, content)
     return int(m.group(1)) if m else default
@@ -155,7 +149,7 @@ def list_commands() -> List[CommandConfig]:
 
     configs = []
     for file in os.listdir(commands_dir):
-        if file.endswith(".ps1"):
+        if file.endswith(".ps1") or file.endswith(".sh"):
             filepath = os.path.join(commands_dir, file)
             with open(filepath, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -169,10 +163,19 @@ def list_commands() -> List[CommandConfig]:
                 
     return configs
 
+from .install_utils import get_os
+from .paths import get_commands_dir, get_config_yaml_path, get_env_path
+
+
 @router.post("/")
 def save_command(config: CommandConfig):
-    if not config.filename.endswith('.ps1'):
-        config.filename += '.ps1'
+    current_os = get_os()
+    is_windows = current_os == "Windows"
+    ext = ".ps1" if is_windows else ".sh"
+    
+    if config.filename.endswith('.ps1') or config.filename.endswith('.sh'):
+        config.filename = config.filename.rsplit('.', 1)[0]
+    config.filename += ext
     
     commands_dir = get_commands_dir()
     os.makedirs(commands_dir, exist_ok=True)
@@ -188,11 +191,18 @@ def save_command(config: CommandConfig):
             
         template = config.raw_content
     else:
-        def s(key: str, val: str) -> str: return f'\n    {key} "{val}" `' if val else ""
-        def s_no_quote(key: str, val: str) -> str: return f'\n    {key} {val} `' if val else ""
-        def i(key: str, val: int) -> str: return f'\n    {key} {val} `' if val >= 0 else ""
-        def f(key: str, val: float) -> str: return f'\n    {key} {val} `'
-        def b(key: str, val: bool) -> str: return f'\n    {key} `' if val else ""
+        if is_windows:
+            def s(key: str, val: str) -> str: return f'\n    {key} "{val}" `' if val else ""
+            def s_no_quote(key: str, val: str) -> str: return f'\n    {key} {val} `' if val else ""
+            def i(key: str, val: int) -> str: return f'\n    {key} {val} `' if val >= 0 else ""
+            def f(key: str, val: float) -> str: return f'\n    {key} {val} `'
+            def b(key: str, val: bool) -> str: return f'\n    {key} `' if val else ""
+        else:
+            def s(key: str, val: str) -> str: return f' \\\n    {key} "{val}"' if val else ""
+            def s_no_quote(key: str, val: str) -> str: return f' \\\n    {key} {val}' if val else ""
+            def i(key: str, val: int) -> str: return f' \\\n    {key} {val}' if val >= 0 else ""
+            def f(key: str, val: float) -> str: return f' \\\n    {key} {val}'
+            def b(key: str, val: bool) -> str: return f' \\\n    {key}' if val else ""
 
         args_str = (
             s("-mm", config.mmproj_path) +
@@ -201,8 +211,8 @@ def save_command(config: CommandConfig):
             i("-np", config.np) +
             s_no_quote("-Cr", config.cr) +
             s_no_quote("-Crb", config.crb) +
-            (f'\n    --cpu-strict 1 `' if config.cpu_strict else '') +
-            (f'\n    --cpu-strict-batch 1 `' if config.cpu_strict_batch else '') +
+            (s_no_quote("--cpu-strict", "1") if config.cpu_strict else '') +
+            (s_no_quote("--cpu-strict-batch", "1") if config.cpu_strict_batch else '') +
             
             i("-b", config.batch_size) +
             i("-ub", config.ubatch_size) +
@@ -229,11 +239,12 @@ def save_command(config: CommandConfig):
             f("--repeat-penalty", config.repeat_penalty) +
             
             b("--jinja", config.jinja) +
-            (f'\n    -fa on `' if config.flash_attention else '') +
-            (f'\n    --reasoning on `' if config.thinking_mode else '')
+            (s_no_quote("-fa", "on") if config.flash_attention else '') +
+            (s_no_quote("--reasoning", "on") if config.thinking_mode else '')
         )
 
-        template = f"""param(
+        if is_windows:
+            template = f"""param(
     [int]$Port = {config.port}
 )
 
@@ -247,9 +258,19 @@ if (Test-Path $EnvPath) {{
     }}
 }}
 
-$BinDir = if ($env:LLAMA_BIN_DIR) {{ $env:LLAMA_BIN_DIR }} else {{ "bin\\llama-b9037-bin-win-cuda-13.1-x64" }}
+if (-not (Get-Command "llama-server.exe" -ErrorAction SilentlyContinue) -and -not (Test-Path "llama-server.exe")) {{
+    if (Get-Command "winget" -ErrorAction SilentlyContinue) {{
+        Write-Host "Instalando llama.cpp vía winget..."
+        winget install llama.cpp
+    }} else {{
+        Write-Host "Error: winget no está instalado. Por favor instala App Installer desde la Microsoft Store para obtener winget."
+        exit 1
+    }}
+}}
+
+$BinDir = if ($env:LLAMA_BIN_DIR) {{ $env:LLAMA_BIN_DIR }} else {{ Join-Path $RootDir "bin" }}
 $ExeName = if ($env:LLAMA_SERVER_EXE) {{ $env:LLAMA_SERVER_EXE }} else {{ "llama-server.exe" }}
-$LlamaExe = Join-Path $RootDir (Join-Path $BinDir $ExeName)
+$LlamaExe = if ($env:LLAMA_BIN_DIR) {{ Join-Path $env:LLAMA_BIN_DIR $ExeName }} elseif (Get-Command $ExeName -ErrorAction SilentlyContinue) {{ $ExeName }} else {{ Join-Path $BinDir $ExeName }}
 $HostAddr = if ($env:DEFAULT_HOST) {{ $env:DEFAULT_HOST }} else {{ "127.0.0.1" }}
 
 & $LlamaExe `
@@ -260,7 +281,42 @@ $HostAddr = if ($env:DEFAULT_HOST) {{ $env:DEFAULT_HOST }} else {{ "127.0.0.1" }
     --host $HostAddr `{args_str}
     -a "{config.alias}"
 """
-        template = template.rstrip(" `\n") + "\n"
+            template = template.rstrip(" `\n") + "\n"
+        else:
+            template = f"""#!/bin/bash
+PORT=${{1:-{config.port}}}
+
+ROOT_DIR="$(cd "$(dirname "${{BASH_SOURCE[0]}}")/.." && pwd)"
+cd "$ROOT_DIR" || exit 1
+
+if [ -f "$ROOT_DIR/.env" ]; then
+    export $(grep -v '^#' "$ROOT_DIR/.env" | xargs)
+fi
+
+LLAMA_EXE="${{LLAMA_SERVER_EXE:-llama-server}}"
+
+if ! command -v "$LLAMA_EXE" &> /dev/null && [ ! -f "$ROOT_DIR/bin/llama-b9037-bin-win-cuda-13.1-x64/$LLAMA_EXE" ]; then
+    if command -v brew &> /dev/null; then
+        echo "Instalando llama.cpp vía brew..."
+        brew install llama.cpp
+        LLAMA_EXE="llama-server"
+    else
+        echo "Error: brew no está instalado. Instala Homebrew (https://brew.sh/) antes de continuar."
+        exit 1
+    fi
+fi
+
+HOST_ADDR="${{DEFAULT_HOST:-127.0.0.1}}"
+
+$LLAMA_EXE \\
+    -m "{config.model_path}" \\
+    -c {config.ctx_size} \\
+    -ngl {config.ngl} \\
+    --port $PORT \\
+    --host $HOST_ADDR {args_str} \\
+    -a "{config.alias}"
+"""
+            template = template.rstrip(" \\\n") + "\n"
 
     with open(filepath, 'w', encoding='utf-8') as f:
         f.write(template)
@@ -278,9 +334,11 @@ $HostAddr = if ($env:DEFAULT_HOST) {{ $env:DEFAULT_HOST }} else {{ "127.0.0.1" }
         parsed = parse_ps1_content(config.raw_content, config.filename)
         conf_alias = parsed.alias
         
+    cmd_str = f"powershell.exe -ExecutionPolicy Bypass -File commands/{config.filename} -Port ${{PORT}}" if is_windows else f"bash commands/{config.filename} ${{PORT}}"
+
     data["models"][conf_alias] = {
         "name": f"{conf_alias} (Local)",
-        "cmd": f"powershell.exe -ExecutionPolicy Bypass -File C:/llama.cpp/commands/{config.filename} -Port ${{PORT}}"
+        "cmd": cmd_str
     }
 
     with open(yaml_path, 'w', encoding='utf-8') as file:
