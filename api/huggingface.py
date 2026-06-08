@@ -1,7 +1,9 @@
 import os
 import subprocess
+import platform
 from fastapi import APIRouter
 from pydantic import BaseModel
+from api.paths import get_models_dir
 
 router = APIRouter()
 
@@ -14,14 +16,29 @@ def download_model(req: DownloadRequest):
     # En un entorno real, esto debería ser asíncrono o enviar a una cola/websocket
     # Para el MVP, llamamos al script de PowerShell existente.
     try:
-        script_path = os.path.join(os.path.dirname(__file__), "..", "scripts", "download_model.ps1")
-        cmd = [
-            "powershell.exe",
-            "-ExecutionPolicy", "Bypass",
-            "-File", script_path,
-            "-RepoId", req.repo_id,
-            "-Filename", req.filename
-        ]
+        author = req.repo_id.split('/')[0] if '/' in req.repo_id else 'Uncategorized'
+        repo_name = req.repo_id.split('/')[1] if '/' in req.repo_id else req.repo_id
+        target_dir = os.path.join(get_models_dir(), author, repo_name)
+        
+        if platform.system() == "Windows":
+            script_path = os.path.join(os.path.dirname(__file__), "..", "scripts", "download_model.ps1")
+            cmd = [
+                "powershell.exe",
+                "-ExecutionPolicy", "Bypass",
+                "-File", script_path,
+                "-RepoId", req.repo_id,
+                "-Filename", req.filename,
+                "-LocalDir", target_dir
+            ]
+        else:
+            script_path = os.path.join(os.path.dirname(__file__), "..", "scripts", "download_model.sh")
+            cmd = [
+                "bash",
+                script_path,
+                "--repo-id", req.repo_id,
+                "--filename", req.filename,
+                "--local-dir", target_dir
+            ]
         
         # Iniciar proceso
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -34,7 +51,7 @@ def download_model(req: DownloadRequest):
 
 @router.get("/local")
 def list_local_models():
-    models_dir = os.path.join(os.path.dirname(__file__), "..", "models")
+    models_dir = get_models_dir()
     if not os.path.exists(models_dir):
         return {"models": []}
     

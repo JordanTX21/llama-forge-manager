@@ -2,6 +2,7 @@
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import AppToast from './components/AppToast.vue'
+import { onMounted } from 'vue'
 
 const route = useRoute()
 const { t, locale } = useI18n()
@@ -10,7 +11,12 @@ const changeLanguage = (event: Event) => {
   const target = event.target as HTMLSelectElement
   locale.value = target.value
   localStorage.setItem('language', target.value)
+  document.documentElement.lang = target.value
 }
+
+onMounted(() => {
+  document.documentElement.lang = locale.value as string
+})
 </script>
 
 <template>

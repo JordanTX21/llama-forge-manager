@@ -28,7 +28,7 @@ if ([string]::IsNullOrEmpty($LocalDir)) {
     $LocalDir = "models\$Author\$RepoName"
 }
 
-$FullLocalDir = Join-Path $RootDir $LocalDir
+$FullLocalDir = if ([System.IO.Path]::IsPathRooted($LocalDir)) { $LocalDir } else { Join-Path $RootDir $LocalDir }
 
 Write-Host "Downloading $Filename from $RepoId to $FullLocalDir..."
 

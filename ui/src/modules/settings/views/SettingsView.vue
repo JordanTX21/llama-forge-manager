@@ -12,6 +12,7 @@ import SettingsBasicForm from '../components/SettingsBasicForm.vue'
 import SettingsAdvancedForm from '../components/SettingsAdvancedForm.vue'
 import SettingsCodeEditor from '../components/SettingsCodeEditor.vue'
 import SmartConfigCard from '../components/SmartConfigCard.vue'
+import AgentConfigModal from '@/components/AgentConfigModal.vue'
 import { ChevronsUpDown, Terminal, Code, Asterisk, Save, Play } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
 
@@ -27,6 +28,9 @@ const { setValues, resetForm, values, setFieldValue, handleSubmit } = useCommand
 const route = useRoute()
 const { success, error: toastError } = useToast()
 const isRunning = ref(false)
+const showAgentModal = ref(false)
+const agentModelName = ref('')
+const pendingFormToRun = ref<Record<string, any> | null>(null)
 
 // SmartConfig: derive model metadata from the currently selected model_path
 const selectedModelMeta = computed(() => {
@@ -101,6 +105,19 @@ const onSubmit = handleSubmit(async (formValues: Record<string, any>) => {
 
 /** Save + Run: auto-saves the form, then executes the .ps1 script */
 const onRun = handleSubmit(async (formValues: Record<string, any>) => {
+  const dontAsk = localStorage.getItem('agents_dont_ask')
+  if (dontAsk !== 'true') {
+    pendingFormToRun.value = formValues
+    const actualModelPath = (formValues.model_path as string || '').replace(/\\/g, '/')
+    const fallbackName = actualModelPath.split('/').pop() || formValues.filename || 'model'
+    agentModelName.value = formValues.alias || fallbackName.replace('.gguf', '')
+    showAgentModal.value = true
+  } else {
+    executeRunCommand(formValues)
+  }
+})
+
+const executeRunCommand = async (formValues: Record<string, any>) => {
   isRunning.value = true
   const filename = await saveConfig(formValues)
   if (!filename) {
@@ -120,7 +137,14 @@ const onRun = handleSubmit(async (formValues: Record<string, any>) => {
   } finally {
     isRunning.value = false
   }
-})
+}
+
+const onModalComplete = () => {
+  if (pendingFormToRun.value) {
+    executeRunCommand(pendingFormToRun.value)
+    pendingFormToRun.value = null
+  }
+}
 
 onMounted(async () => {
   await fetchCommands()
@@ -273,5 +297,7 @@ onMounted(async () => {
       </div>
 
     </div>
+
+    <AgentConfigModal v-model="showAgentModal" :modelName="agentModelName" @configured="onModalComplete" @skipped="onModalComplete" />
   </div>
 </template>

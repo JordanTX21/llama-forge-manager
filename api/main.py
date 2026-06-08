@@ -8,6 +8,7 @@ from api.huggingface import router as huggingface_router
 from api.runner import router as runner_router
 from api.commands import router as commands_router
 from api.recommend import router as recommend_router
+from api.agents import router as agents_router
 
 app = FastAPI(title="Local AI Manager API")
 
@@ -25,6 +26,7 @@ app.include_router(huggingface_router, prefix="/api/huggingface", tags=["Hugging
 app.include_router(runner_router, prefix="/api/runner", tags=["Runner"])
 app.include_router(commands_router, prefix="/api/commands", tags=["Commands"])
 app.include_router(recommend_router, prefix="/api/recommend", tags=["Recommend"])
+app.include_router(agents_router, prefix="/api/agents", tags=["Agents"])
 
 import os
 from fastapi.staticfiles import StaticFiles

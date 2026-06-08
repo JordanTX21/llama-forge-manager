@@ -7,9 +7,10 @@ import { SettingsService } from '../../settings/services/settings.service'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '@/composables/useToast'
 import { Cpu, Database, Settings, Play } from '@lucide/vue'
-import Model1 from '@/assets/img/model-1.png'
-import Model2 from '@/assets/img/model-2.png'
-import Model3 from '@/assets/img/model-3.png'
+import Model1 from '@/assets/img/models/model-1.png'
+import Model2 from '@/assets/img/models/model-2.png'
+import Model3 from '@/assets/img/models/model-3.png'
+import AgentConfigModal from '@/components/AgentConfigModal.vue'
 
 const { t } = useI18n()
 const props = defineProps<{
@@ -23,6 +24,10 @@ const { success, error: toastError } = useToast()
 
 /** Set of model filenames currently running (for badge state) */
 const runningModels = ref<Set<string>>(new Set())
+
+const showAgentModal = ref(false)
+const agentModelName = ref('')
+const pendingModelToRun = ref<LocalModel | null>(null)
 
 const isVisionEncoder = (model: LocalModel): boolean => {
   return model.filename.toLowerCase().includes('mmproj')
@@ -49,6 +54,18 @@ const goToSettings = (model: LocalModel) => {
 }
 
 const runModel = async (model: LocalModel) => {
+  const dontAsk = localStorage.getItem('agents_dont_ask')
+  if (dontAsk !== 'true') {
+    pendingModelToRun.value = model
+    const cmd = getCommandForModel(model)
+    agentModelName.value = cmd?.alias || model.filename.replace('.gguf', '')
+    showAgentModal.value = true
+  } else {
+    executeRunCommand(model)
+  }
+}
+
+const executeRunCommand = async (model: LocalModel) => {
   const cmd = getCommandForModel(model)
   if (!cmd) return
 
@@ -70,6 +87,13 @@ const runModel = async (model: LocalModel) => {
   setTimeout(() => {
     runningModels.value.delete(model.filename)
   }, 8000)
+}
+
+const onModalComplete = () => {
+  if (pendingModelToRun.value) {
+    executeRunCommand(pendingModelToRun.value)
+    pendingModelToRun.value = null
+  }
 }
 </script>
 
@@ -106,7 +130,8 @@ const runModel = async (model: LocalModel) => {
             <h4 class="font-headline text-base text-on-surface font-semibold truncate" :title="model.filename">{{
               model.filename }}</h4>
             <span class="text-xs text-on-surface-variant truncate block" :title="model.author">{{ t('models.by', {
-              author: model.author || t('models.local') }) }}</span>
+              author: model.author || t('models.local')
+            }) }}</span>
           </div>
           <span v-if="isVisionEncoder(model)"
             class="font-label text-[10px] text-purple-400 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 rounded shrink-0">MMPROJ</span>
@@ -154,7 +179,8 @@ const runModel = async (model: LocalModel) => {
             model.filename }}</h4>
           <span class="text-xs text-on-surface-variant truncate block" :title="model.author">{{ t('models.by', {
             author:
-              model.author || t('models.local') }) }}</span>
+              model.author || t('models.local')
+          }) }}</span>
         </div>
 
         <div class="hidden md:flex col-span-3 items-center gap-1.5 text-on-surface-variant">
@@ -191,4 +217,6 @@ const runModel = async (model: LocalModel) => {
       </div>
     </div>
   </div>
+
+  <AgentConfigModal v-model="showAgentModal" :modelName="agentModelName" @configured="onModalComplete" @skipped="onModalComplete" />
 </template>
