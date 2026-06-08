@@ -2,11 +2,15 @@
 
 LlamaForge (anteriormente tu entorno de `llama.cpp`) es una plataforma completa de orquestación para Modelos de Lenguaje Locales. Incluye un backend inteligente y una interfaz de usuario modular diseñada con una estética minimalista "Apple-like", capaz de gestionar hardware, descargar modelos desde Hugging Face, y enrutar dinámicamente peticiones con `llama-swap`.
 
+Recientemente reconstruido bajo una **arquitectura de puerto único** y soporte para **instalaciones globales (Winget/Homebrew)**.
+
 ## Arquitectura
 
-- **Frontend (`ui/`)**: Monolito Modular desarrollado con Vue 3, Composition API, TypeScript, Axios, y TailwindCSS v4.
-- **Backend (`api/`)**: API REST impulsada por FastAPI y Uvicorn.
-- **Orquestación Core**: Binarios oficiales de `llama.cpp` y `llama-server.exe`, gestionados mediante wrappers dinámicos de PowerShell (`run_model.ps1`, `start-swap.ps1`).
+- **Frontend (`ui/`)**: Monolito Modular desarrollado con Vue 3, Composition API, TypeScript, Axios, y TailwindCSS v4. Compilado y servido de forma estática por el backend.
+- **Backend (`api/`)**: API REST impulsada por FastAPI y Uvicorn. Actúa como proxy inverso y sirve la SPA de Vue de forma nativa.
+- **Orquestación Core**: Binarios oficiales de `llama.cpp` y `llama-server.exe`, gestionados mediante wrappers dinámicos de PowerShell y Bash.
+- **Aislamiento de Perfil (`~/.llama-forge/`)**: Todos los modelos, configuraciones (`config.yaml`, `.env`) y comandos auto-generados se guardan en el directorio del usuario para permitir instalaciones de sistema globales de solo lectura.
+- **Distribución Standalone**: Soporte para compilación de ejecutables únicos con PyInstaller (`run.py`).
 
 ## Mi Hardware
 
@@ -20,47 +24,70 @@ LlamaForge (anteriormente tu entorno de `llama.cpp`) es una plataforma completa 
 
 1. **Dashboard en Tiempo Real**: Visualización de métricas de Hardware en vivo (Nvidia VRAM, CPU y RAM) usando `psutil` y `nvidia-smi`.
 2. **Hugging Face Model Hub**: Gestor y descargador de modelos (GGUF) con integración a la librería CLI nativa de HF.
-3. **Advanced Settings & Llama-Swap**: Editor visual completo de configuraciones de inferencia:
+3. **Advanced Settings & Recomendaciones AI**: Editor visual de configuraciones de inferencia con recomendaciones automáticas basadas en tu hardware.
    - Soporte para **Flash Attention**, **Thinking Mode** (Modelos de Razonamiento).
    - Control total de **Sampling** (Temp, Top-P, Min-P, Penalties).
    - Configuración de Hardware: Threads, MoE Cores, Core Ratios, CPU Strict.
    - Parámetros de **Memoria y Caché** (KV Unified, mlock, no-mmap).
-     Los cambios se inyectan dinámicamente en los archivos `.ps1` y en el `config.yaml` maestro de llama-swap.
-4. **Instalación de un Clic**: Gestor automático (`start-manager.ps1`) que crea el entorno virtual `venv`, instala las dependencias de Python y Node.js, e inicia todos los servidores.
+4. **Arquitectura de Puerto Único**: Todo se sirve a través de un solo puerto (por defecto 5170), simplificando el uso.
+
+## Requisitos
+
+Si deseas correr el proyecto desde el código fuente para desarrollo:
+- **Python 3.10+**
+- **Node.js 18+** y `npm`
+- **Git**
+- (Opcional) **Winget** (Windows) o **Homebrew** (macOS/Linux) para la instalación automatizada de dependencias del sistema como `llama-swap`.
 
 ## Instalación y Ejecución
 
-Simplemente ejecuta el orquestador principal:
+### 1. Entorno de Desarrollo Local
+
+El proyecto cuenta con un orquestador inteligente (`manager.py`) que gestiona entornos virtuales, instala dependencias de Python y Node.js, compila el frontend de Vue dinámicamente si detecta cambios, y levanta el servidor FastAPI.
 
 ```powershell
-.\start-manager.ps1
+# Clona el repositorio
+git clone https://github.com/tu-usuario/llama-forge.git
+cd llama-forge
+
+# Inicia el orquestador
+python manager.py
 ```
 
-Este script automáticamente:
-
+El orquestador automáticamente:
 - Creará la carpeta `venv/` e instalará los paquetes de `requirements.txt`.
-- Hará `npm install` dentro de la carpeta `ui/`.
-- Levantará FastAPI en `http://localhost:8000`.
-- Levantará Vue Vite en `http://localhost:5173`.
+- Hará `npm install` y `npm run build` en `ui/` (solo si se detectan cambios en el código fuente).
+- Levantará el servidor unificado en el puerto `5170` (o el especificado por `DEFAULT_PORT`).
+
+### 2. Versión Ejecutable (Standalone) / Distribución Global
+
+Si descargas la versión compilada (vía PyInstaller, Winget o Homebrew), simplemente ejecuta el binario de la aplicación.
+Toda la configuración se guardará y leerá automáticamente de tu directorio de usuario:
+- **Windows**: `C:\Users\TuUsuario\.llama-forge`
+- **macOS/Linux**: `~/.llama-forge`
+
+Consulta el documento [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md) para más detalles sobre cómo instalar vía Winget o Homebrew.
 
 ## Estructura del Proyecto
 
 ```text
 C:\llama.cpp
 ├── api/                  # Backend REST en FastAPI
-│   ├── commands.py       # Serialización y parseo de PowerShell y YAML (Config Avanzada)
+│   ├── commands.py       # Gestión de comandos y config.yaml maestro
 │   ├── hardware.py       # Telemetría de sistema (RAM, GPU)
-│   ├── huggingface.py    # Hub de descargas locales
+│   ├── huggingface.py    # Hub de descargas
+│   ├── install_utils.py  # Utilidades para Winget/Homebrew
+│   ├── main.py           # Entrypoint de FastAPI y Proxy SPA
+│   ├── paths.py          # Resolución de rutas dinámicas (~/.llama-forge/)
 │   └── runner.py         # Control de procesos
-├── commands/             # Archivos auto-generados .ps1 por configuración
-├── models/               # Archivos GGUF descargados organizados por Autor/Repo
-├── scripts/              # Scripts nativos (run_model con soporte dinámico avanzado)
-├── ui/                   # Frontend Monolito Modular
-│   ├── src/modules/      # (dashboard, models, settings)
-│   └── src/services/     # api.service.ts
-├── config.yaml           # Configuración maestra para llama-swap (Auto-Generado)
-├── requirements.txt      # Dependencias Python
-└── start-manager.ps1     # Comando unificado de inicio
+├── docs/                 # Documentación adicional (Distribución)
+├── scripts/              # Scripts nativos (.ps1 y .sh)
+├── ui/                   # Frontend Monolito Modular (Vue 3)
+│   ├── src/              # Código fuente (dashboard, models, settings, i18n)
+│   └── dist/             # Build de producción (generado por manager.py)
+├── manager.py            # Orquestador de desarrollo local inteligente (auto-build)
+├── run.py                # Entrypoint para PyInstaller (Ejecutable standalone)
+└── requirements.txt      # Dependencias Python
 ```
 
 ## Modelos que yo utilizo
