@@ -34,6 +34,7 @@ Recientemente reconstruido bajo una **arquitectura de puerto único** y soporte 
 ## Requisitos
 
 Si deseas correr el proyecto desde el código fuente para desarrollo:
+
 - **Python 3.10+**
 - **Node.js 18+** y `npm`
 - **Git**
@@ -47,7 +48,7 @@ El proyecto cuenta con un orquestador inteligente (`manager.py`) que gestiona en
 
 ```powershell
 # Clona el repositorio
-git clone https://github.com/tu-usuario/llama-forge.git
+git clone https://github.com/JordanTX21/llama-forge-manager
 cd llama-forge
 
 # Inicia el orquestador
@@ -55,6 +56,7 @@ python manager.py
 ```
 
 El orquestador automáticamente:
+
 - Creará la carpeta `venv/` e instalará los paquetes de `requirements.txt`.
 - Hará `npm install` y `npm run build` en `ui/` (solo si se detectan cambios en el código fuente).
 - Levantará el servidor unificado en el puerto `5170` (o el especificado por `DEFAULT_PORT`).
@@ -63,6 +65,7 @@ El orquestador automáticamente:
 
 Si descargas la versión compilada (vía PyInstaller, Winget o Homebrew), simplemente ejecuta el binario de la aplicación.
 Toda la configuración se guardará y leerá automáticamente de tu directorio de usuario:
+
 - **Windows**: `C:\Users\TuUsuario\.llama-forge`
 - **macOS/Linux**: `~/.llama-forge`
 
