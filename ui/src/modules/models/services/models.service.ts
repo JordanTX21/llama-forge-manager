@@ -22,6 +22,15 @@ export interface HFFile {
   size: number;
 }
 
+export interface DownloadProgress {
+  status: string;
+  progress: number;
+  speed: string;
+  eta: string;
+  downloaded: string;
+  total: string;
+}
+
 export const ModelsService = {
   async getLocalModels(): Promise<{models: LocalModel[]}> {
     return apiClient.get('/huggingface/local')
@@ -29,6 +38,10 @@ export const ModelsService = {
   
   async downloadModel(repoId: string, filename: string): Promise<any> {
     return apiClient.post('/huggingface/download', { repo_id: repoId, filename })
+  },
+
+  async getDownloadStatus(repoId: string, filename: string): Promise<DownloadProgress> {
+    return apiClient.get('/huggingface/download/status', { params: { repo_id: repoId, filename } })
   },
 
   async searchHFModels(query: string): Promise<HFModel[]> {

@@ -1,14 +1,17 @@
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast'
 import { SettingsService } from '../services/settings.service'
 import { Play } from '@lucide/vue'
+
+const toast = useToast()
 
 const startSwap = async () => {
   try {
     await SettingsService.startSwap()
-    alert('Llama-Swap iniciado. Puedes conectarte en el puerto 8080.')
+    toast.success('Llama-Swap iniciado. Puedes conectarte en el puerto 8080.')
   } catch (err) {
     console.error(err)
-    alert('Error al iniciar Llama-Swap.')
+    toast.error('Error al iniciar Llama-Swap.')
   }
 }
 </script>
@@ -25,7 +28,8 @@ const startSwap = async () => {
           <span class="font-label text-[10px] text-primary tracking-widest uppercase">Accelerator Ready</span>
         </div>
         <h2 class="font-headline text-xl font-bold">Llama-Swap Router</h2>
-        <p class="text-on-surface-variant text-sm max-w-sm mt-1">Optimize local inference by dynamically switching between active models.</p>
+        <p class="text-on-surface-variant text-sm max-w-sm mt-1">Optimize local inference by dynamically switching
+          between active models.</p>
       </div>
       <div class="mt-4 md:mt-0">
         <button @click="startSwap"

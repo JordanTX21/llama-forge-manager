@@ -8,10 +8,12 @@ import { HardwareService, type HardwareInfo } from '@/services/hardware.service'
 import HuggingFaceSearch from '@/components/HuggingFaceSearch.vue'
 import QuantizationSelector from '@/components/QuantizationSelector.vue'
 import { useI18n } from 'vue-i18n'
+import { useToast } from '@/composables/useToast'
 
 const { t } = useI18n()
 const store = useModelsStore()
-const { isDownloading } = storeToRefs(store)
+const { isDownloading, downloadProgress, downloadSpeed, downloadEta, downloadStatusText, downloadedSize, totalSize } = storeToRefs(store)
+const toast = useToast()
 
 const selectedRepo = ref<string>('')
 const ggufFiles = ref<HFFile[]>([])
@@ -73,12 +75,12 @@ const handleDownload = async () => {
   try {
     const filename = selectedFile.value.path.split('/').pop() || selectedFile.value.path
     await store.downloadModel(selectedRepo.value, filename)
-    alert(t('models.downloadStarted'))
+    toast.success(t('models.downloadStarted'))
     if (searchRef.value) searchRef.value.clearSearch()
     onSearchCleared()
   } catch (err) {
     console.error('Error starting download', err)
-    alert(t('models.downloadError'))
+    toast.error(t('models.downloadError'))
   }
 }
 
@@ -99,7 +101,8 @@ const getIconForStatus = (tier: string) => {
     <div class="relative z-10">
       <div class="flex items-center gap-2 mb-2">
         <CloudDownload class="text-primary w-6 h-6" />
-        <h3 class="font-headline text-2xl text-on-surface font-semibold tracking-tight">{{ t('models.downloadTitle') }}</h3>
+        <h3 class="font-headline text-2xl text-on-surface font-semibold tracking-tight">{{ t('models.downloadTitle') }}
+        </h3>
       </div>
       <p class="text-on-surface-variant text-sm font-body mb-6">{{ t('models.downloadDescription') }}</p>
 
@@ -125,7 +128,8 @@ const getIconForStatus = (tier: string) => {
             <div class="flex items-center gap-2">
               <component :is="getIconForStatus(quantSelectorRef.hardwareStatus.tier)" class="w-5 h-5"
                 :class="quantSelectorRef.hardwareStatus.color" />
-              <h4 class="font-headline font-semibold text-sm" :class="quantSelectorRef.hardwareStatus.color">{{ t('models.compatibilityTitle', { tier: '' }) }} {{ quantSelectorRef.hardwareStatus.tier }}</h4>
+              <h4 class="font-headline font-semibold text-sm" :class="quantSelectorRef.hardwareStatus.color">{{
+                t('models.compatibilityTitle', { tier: '' }) }} {{ quantSelectorRef.hardwareStatus.tier }}</h4>
             </div>
             <div
               class="flex items-center justify-between mt-1 bg-surface-container-low/50 p-2.5 rounded-xl border border-outline/30">
@@ -142,11 +146,52 @@ const getIconForStatus = (tier: string) => {
             <p class="text-xs text-on-surface-variant opacity-70">{{ t('models.selectModelToView') }}</p>
           </div>
 
-          <button @click="handleDownload" :disabled="isDownloading || !selectedFile"
+          <!-- Progress UI -->
+          <div v-if="isDownloading"
+            class="w-full bg-surface-container-low border border-outline rounded-xl p-4 flex flex-col gap-3 shadow-inner animate-fade-in relative overflow-hidden">
+            <!-- Subtle animated background gradient -->
+            <div
+              class="absolute inset-0 bg-linear-to-r from-transparent via-primary/5 to-transparent -translate-x-full animate-[shimmer_2s_infinite]">
+            </div>
+
+            <div class="flex justify-between items-center mb-1 relative z-10">
+              <span class="text-xs font-bold text-primary flex items-center gap-2">
+                <Loader2 class="w-3.5 h-3.5 animate-spin" />
+                {{ downloadStatusText }}
+              </span>
+              <span
+                class="text-xs font-mono text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-md border border-outline/50 shadow-sm">{{
+                  downloadProgress }}%</span>
+            </div>
+
+            <div
+              class="w-full bg-surface-container-high rounded-full h-2.5 overflow-hidden border border-outline/30 relative z-10">
+              <div
+                class="bg-linear-to-r from-primary to-primary/70 h-2.5 rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(var(--color-primary),0.4)]"
+                :style="{ width: `${downloadProgress}%` }"></div>
+            </div>
+
+            <div
+              class="flex justify-between items-center text-[10px] text-on-surface-variant font-medium mt-1 relative z-10">
+              <div class="flex items-center gap-2">
+                <span v-if="downloadedSize"
+                  class="bg-surface-container-high px-1.5 py-0.5 rounded border border-outline/30">{{ downloadedSize }}
+                  / {{ totalSize || '?' }}</span>
+                <span v-if="downloadSpeed" class="text-primary/80 flex items-center gap-1 font-mono tracking-tight">
+                  <Zap class="w-2.5 h-2.5" />{{ downloadSpeed }}
+                </span>
+              </div>
+              <span v-if="downloadEta"
+                class="font-mono bg-surface-container-high px-1.5 py-0.5 rounded border border-outline/30 opacity-90">ETA
+                {{ downloadEta }}</span>
+            </div>
+          </div>
+
+          <!-- Download Button -->
+          <button v-else @click="handleDownload" :disabled="!selectedFile"
             class="w-full bg-primary hover:bg-primary/90 text-on-primary py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg shadow-primary/20 disabled:opacity-50 disabled:active:scale-100 disabled:shadow-none text-sm tracking-wide">
-            <Download v-if="!isDownloading" class="w-[18px] h-[18px]" />
-            <Loader2 v-else class="w-[18px] h-[18px] animate-spin" />
-            <span>{{ isDownloading ? t('models.downloadingModel') : t('models.downloadModel') }}</span>
+            <Download class="w-[18px] h-[18px]" />
+            <span>{{ t('models.downloadModel') }}</span>
           </button>
         </div>
       </div>

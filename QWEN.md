@@ -40,7 +40,6 @@ ui/                   # Vue 3 frontend (Vite → dist/)
 
 scripts/              # Core orchestration scripts
 ├── run_model.ps1/.sh # Launch llama-server with parsed args
-├── download_model.ps1/.sh # HF model download wrapper
 └── start-swap.ps1/.sh # Launch llama-swap
 
 manager.py            # Dev orchestrator (auto-build, venv, unified port)
@@ -50,10 +49,12 @@ run.py                # PyInstaller standalone entrypoint
 ### User Data Isolation
 
 All user-specific data is stored in `~/.llama-forge/`:
+
 - **Windows**: `C:\Users\<User>\.llama-forge\`
 - **macOS/Linux**: `~/.llama-forge/`
 
 Contents:
+
 - `config.yaml` — llama-swap master config (auto-generated, do not hand-edit)
 - `.env` — Environment variables copied from `.env.example`
 - `commands/` — Auto-generated `.ps1`/`.sh` scripts
@@ -68,19 +69,19 @@ Contents:
 
 ## Key Files
 
-| File                        | Purpose                                                                                       |
-| -------------------------- | --------------------------------------------------------------------------------------------- |
-| `manager.py`               | Dev orchestrator: creates venv, installs deps, auto-builds frontend, starts unified server on port 5170 (or `DEFAULT_PORT`) |
-| `run.py`                   | Standalone entrypoint for PyInstaller builds; reads `DEFAULT_PORT` from `~/.llama-forge/.env` |
-| `api/main.py`              | FastAPI app, CORS, SPA catch-all proxy, router registration                                   |
-| `api/paths.py`             | Path resolution utilities; `get_user_data_dir()`, `get_commands_dir()`, `get_models_dir()`, etc. |
-| `api/commands.py`          | Parse/generate `.ps1`/`.sh` command files and `config.yaml`                                   |
-| `api/agents.py`            | Code agent integration (Opencode, QwenCode) — configure model endpoints                        |
-| `api/recommend.py`         | AI-based inference parameter recommendations based on hardware                                |
-| `scripts/run_model.ps1`    | Wraps `llama-server.exe` with all inference arguments                                         |
-| `.env.example`             | Config keys: `LLAMA_BIN_DIR`, `LLAMA_SERVER_EXE`, `DEFAULT_CTX_SIZE`, `DEFAULT_NGL`, `DEFAULT_HOST`, `HF_TOKEN`, `DEFAULT_PORT` |
-| `ui/vite.config.ts`        | Vue + TailwindCSS v4 plugin config                                                            |
-| `ui/src/services/`         | HTTP client targeting backend API                                                             |
+| File                    | Purpose                                                                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `manager.py`            | Dev orchestrator: creates venv, installs deps, auto-builds frontend, starts unified server on port 5170 (or `DEFAULT_PORT`)     |
+| `run.py`                | Standalone entrypoint for PyInstaller builds; reads `DEFAULT_PORT` from `~/.llama-forge/.env`                                   |
+| `api/main.py`           | FastAPI app, CORS, SPA catch-all proxy, router registration                                                                     |
+| `api/paths.py`          | Path resolution utilities; `get_user_data_dir()`, `get_commands_dir()`, `get_models_dir()`, etc.                                |
+| `api/commands.py`       | Parse/generate `.ps1`/`.sh` command files and `config.yaml`                                                                     |
+| `api/agents.py`         | Code agent integration (Opencode, QwenCode) — configure model endpoints                                                         |
+| `api/recommend.py`      | AI-based inference parameter recommendations based on hardware                                                                  |
+| `scripts/run_model.ps1` | Wraps `llama-server.exe` with all inference arguments                                                                           |
+| `.env.example`          | Config keys: `LLAMA_BIN_DIR`, `LLAMA_SERVER_EXE`, `DEFAULT_CTX_SIZE`, `DEFAULT_NGL`, `DEFAULT_HOST`, `HF_TOKEN`, `DEFAULT_PORT` |
+| `ui/vite.config.ts`     | Vue + TailwindCSS v4 plugin config                                                                                              |
+| `ui/src/services/`      | HTTP client targeting backend API                                                                                               |
 
 ## Building and Running
 
@@ -92,6 +93,7 @@ python manager.py
 ```
 
 `manager.py` does:
+
 1. Creates `venv/` if missing, installs `requirements.txt`
 2. Runs `npm install` in `ui/` if `node_modules/` is missing
 3. Auto-builds frontend (`npm run build`) only when source changes detected
@@ -121,35 +123,35 @@ npm run build   # runs vue-tsc -b && vite build
 
 ## API Endpoints
 
-| Method | Endpoint                              | Description                                                |
-| ------ | ------------------------------------- | ---------------------------------------------------------- |
-| GET    | `/api/status`                         | Health check                                               |
-| GET    | `/api/hardware/`                      | CPU/RAM/GPU metrics (uses `nvidia-smi` + `psutil`)         |
-| POST   | `/api/huggingface/download`           | Download GGUF model (triggers PowerShell script)           |
-| GET    | `/api/huggingface/local`              | List downloaded models                                     |
-| GET    | `/api/commands/`                      | List all command configs (parses `.ps1`/`.sh` files)       |
-| POST   | `/api/commands/`                      | Save command config (writes `.ps1`/`.sh` + updates `config.yaml`) |
-| POST   | `/api/runner/start`                   | Start a model directly via `run_model.ps1`                 |
-| POST   | `/api/runner/swap`                    | Start llama-swap                                           |
-| GET    | `/api/recommend/`                     | AI-based inference parameter recommendations               |
-| GET    | `/api/agents/status`                  | Check installed code agents (Opencode, QwenCode)           |
-| POST   | `/api/agents/configure`               | Configure agent model endpoint                             |
+| Method | Endpoint                    | Description                                                       |
+| ------ | --------------------------- | ----------------------------------------------------------------- |
+| GET    | `/api/status`               | Health check                                                      |
+| GET    | `/api/hardware/`            | CPU/RAM/GPU metrics (uses `nvidia-smi` + `psutil`)                |
+| POST   | `/api/huggingface/download` | Download GGUF model (triggers PowerShell script)                  |
+| GET    | `/api/huggingface/local`    | List downloaded models                                            |
+| GET    | `/api/commands/`            | List all command configs (parses `.ps1`/`.sh` files)              |
+| POST   | `/api/commands/`            | Save command config (writes `.ps1`/`.sh` + updates `config.yaml`) |
+| POST   | `/api/runner/start`         | Start a model directly via `run_model.ps1`                        |
+| POST   | `/api/runner/swap`          | Start llama-swap                                                  |
+| GET    | `/api/recommend/`           | AI-based inference parameter recommendations                      |
+| GET    | `/api/agents/status`        | Check installed code agents (Opencode, QwenCode)                  |
+| POST   | `/api/agents/configure`     | Configure agent model endpoint                                    |
 
 API docs available at `http://localhost:8000/docs`.
 
 ## Environment Variables (.env)
 
-| Key                      | Default         | Description                              |
-| ------------------------ | --------------- | ---------------------------------------- |
-| `LLAMA_BIN_DIR`          | (empty)         | Path to llama.cpp binary directory       |
-| `LLAMA_SERVER_EXE`       | `llama-server.exe` | llama-server executable name           |
-| `DEFAULT_CTX_SIZE`       | `262144`        | Default context size                     |
-| `DEFAULT_NGL`            | `99`            | Default GPU layers                       |
-| `DEFAULT_HOST`           | `127.0.0.1`     | Default bind host                        |
-| `HF_TOKEN`               | (empty)         | HuggingFace token for private models     |
-| `DEFAULT_PORT`           | `5170`          | Unified server port (dev mode)           |
-| `DEFAULT_MAX_CONTEXT_TOKENS` | `128000`    | Default max context tokens for agents    |
-| `DEFAULT_MAX_OUTPUT_TOKENS`  | `65536`   | Default max output tokens for agents     |
+| Key                          | Default            | Description                           |
+| ---------------------------- | ------------------ | ------------------------------------- |
+| `LLAMA_BIN_DIR`              | (empty)            | Path to llama.cpp binary directory    |
+| `LLAMA_SERVER_EXE`           | `llama-server.exe` | llama-server executable name          |
+| `DEFAULT_CTX_SIZE`           | `262144`           | Default context size                  |
+| `DEFAULT_NGL`                | `99`               | Default GPU layers                    |
+| `DEFAULT_HOST`               | `127.0.0.1`        | Default bind host                     |
+| `HF_TOKEN`                   | (empty)            | HuggingFace token for private models  |
+| `DEFAULT_PORT`               | `5170`             | Unified server port (dev mode)        |
+| `DEFAULT_MAX_CONTEXT_TOKENS` | `128000`           | Default max context tokens for agents |
+| `DEFAULT_MAX_OUTPUT_TOKENS`  | `65536`            | Default max output tokens for agents  |
 
 ## Development Conventions
 
@@ -167,20 +169,20 @@ API docs available at `http://localhost:8000/docs`.
 
 ## Hardware Context (User's Machine)
 
-| Component | Specification                        |
-| --------- | ------------------------------------ |
+| Component | Specification                            |
+| --------- | ---------------------------------------- |
 | CPU       | AMD Ryzen 5 7600X (6 cores / 12 threads) |
-| GPU       | NVIDIA RTX 3060 12GB VRAM            |
-| RAM       | 32GB                                 |
+| GPU       | NVIDIA RTX 3060 12GB VRAM                |
+| RAM       | 32GB                                     |
 
 ## Active Models
 
-| Model              | Quantization | Size    | mmproj        | Status   |
-| ------------------ | ------------ | ------- | ------------- | -------- |
-| Qwen3.5-4B         | Q4_K_XL      | 2.9 GB  | 675 MB BF16   | Active   |
-| Qwen3.5-9B         | Q4_K_XL      | 5.9 GB  | 921 MB BF16   | Active   |
-| Qwen3.5-9B-MTP     | Q4_K_XL      | 6.1 GB  | —             | Downloaded |
-| Qwen3.6-35B-A3B    | IQ2_XXS      | 10.7 GB | 902 MB BF16   | Active   |
-| Qwen3.6-35B-A3B-MTP | MXFP4_MOE  | 22.1 GB | —             | Downloaded |
+| Model               | Quantization | Size    | mmproj      | Status     |
+| ------------------- | ------------ | ------- | ----------- | ---------- |
+| Qwen3.5-4B          | Q4_K_XL      | 2.9 GB  | 675 MB BF16 | Active     |
+| Qwen3.5-9B          | Q4_K_XL      | 5.9 GB  | 921 MB BF16 | Active     |
+| Qwen3.5-9B-MTP      | Q4_K_XL      | 6.1 GB  | —           | Downloaded |
+| Qwen3.6-35B-A3B     | IQ2_XXS      | 10.7 GB | 902 MB BF16 | Active     |
+| Qwen3.6-35B-A3B-MTP | MXFP4_MOE    | 22.1 GB | —           | Downloaded |
 
 Note: Qwen3.6-35B-A3B-MTP (22.1 GB) exceeds 12GB VRAM but is available for CPU offload.
